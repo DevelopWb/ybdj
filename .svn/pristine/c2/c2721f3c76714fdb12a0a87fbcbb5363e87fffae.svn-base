@@ -1,0 +1,9 @@
+﻿package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+
+public class PBLoginR extends PBodyJSON
+{
+	 
+}

@@ -1,0 +1,12 @@
+﻿package YangTalkback.Protocol;
+
+import java.io.*;
+
+import YangTalkback.Comm.*;
+import AXLib.Utility.*;
+
+public class PBAllIDR extends PBodyJSON
+{
+	public ListEx<IDModel> IDList;
+ 
+}

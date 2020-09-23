@@ -1,0 +1,12 @@
+package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+
+public class PBMonitorOpenR extends PBodyJSON
+{
+ 
+ 
+}
+
+ 

@@ -1,0 +1,13 @@
+﻿package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+
+public class PBLoginC extends PBodyJSON
+{
+ 
+	public short ID;
+	public String Name;
+	public boolean Relogin;
+	public int TimeoutSpan;
+}

@@ -1,0 +1,158 @@
+package YangTalkback.Act;
+
+import java.net.Socket;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.AlertDialogManage;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.IDModel;
+import YangTalkback.Comm.IDUseType;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Cpt.cptIDItem;
+import YangTalkback.Cpt.GenGridView.ActGenDataViewActivity1;
+import YangTalkback.Cpt.GenGridView.ActGetDataViewActivity;
+import YangTalkback.Cpt.GenGridView.GenGridViewAdapter;
+import YangTalkback.Cpt.GenGridView.GenGridViewDataSource;
+import YangTalkback.Cpt.UIAdapter.GridAdapter;
+import YangTalkback.Cpt.UIAdapter.IDataSource;
+import YangTalkback.Cpt.UIAdapter.BaseAdapterEx.IItemViewCreater;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.*;
+import android.content.Intent;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_main1, layout = 0x00)
+public class actMain1 extends ActGenDataViewActivity1<IDModel> {
+
+	@AutoRefView(id = R.act_main.btStart, click = "btStart_Click")
+	public Button btStart;// 退出按钮
+	@AutoRefView(id = R.act_main.gvGrid)
+	public GridView gvGrid;// 显示号码列表
+
+	private ListEx<IDModel> _SysIDList = new ListEx<IDModel>();// 保存系统的号码列表
+	private ListEx<Short> _selIDList = new ListEx<Short>();
+
+	private boolean _isTalkbackReqing = false;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		if (_connection == null) {
+			AlertAndExit("网络连接异常！");
+		}
+		this.CallByNewThread("LoadAllID");// 启用新线程调用方法
+
+	}
+
+	// 加载所有号码
+	public void LoadAllID() {
+		if (_connection != null && _connection.getIsLogined()) {
+			_SysIDList = _connection.GetAllID();// 获取所有号码
+			_SysIDList = _SysIDList.Where(new Predicate<IDModel>() {
+				public boolean Test(IDModel obj) {
+					return obj.ID != _connection.ID;
+				}
+			});
+			InitGridViewActivity(gvGrid, 2, R.layout.item_idinfo);
+		}
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+
+		_connection.Disconnect();
+
+		return false;
+	}
+
+	// 获取数据项
+	public ListEx<IDModel> getData(int index) {
+		if (index == 1)
+			return _SysIDList;
+		else
+			return new ListEx<IDModel>();
+	}
+
+	public void btStart_Click(EventArg<View> arg) {
+		if (_isTalkbackReqing)
+			return;
+		_isTalkbackReqing = true;
+		OpenLoading("正在发起对讲");
+		ThreadEx.ThreadCall(new ICallback() {
+			@Override
+			public void invoke() {
+				try {
+					ListEx<Short> list = _selIDList.ToList();
+					list.add(_connection.ID);
+					String json = JSONHelper.toJSON(list);
+					PBCmdC pbc = new PBCmdC(PBCmdC.CMD_Type_TALK_Req, json);
+					pbc.From = _connection.ID;
+					pbc.To = 0;
+					PBCmdR pbr = _connection.CmdC(pbc);
+					if (pbr.Result) {
+						String key = JSONHelper.forJSON(pbr.JSON, String.class);
+						startActivity(actTalkback.class, key);
+					} else {
+						// 对讲通道已经存在
+						if (pbr.JSON != null && pbr.Message != null && pbr.Message.contains("通道已经存在")) {
+							String key = JSONHelper.forJSON(pbr.JSON, String.class);
+							startActivity(actTalkback.class, key);
+						} else {
+							Alert("发起对讲失败", true);
+						}
+
+					}
+				} catch (Exception e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					Alert("发起对讲发生异常", true);
+				} finally {
+					CloseLoading();
+					_isTalkbackReqing = false;
+				}
+
+			}
+		});
+
+	}
+
+	@Override
+	protected ActGenDataViewActivity1.IGridViewItemViewCPT<IDModel> CreateItem(IDModel model) {
+		return new cptIDItem(_act, model);
+	}
+
+	@Override
+	public void ItemExecutionEvent(EventArg<Object> arg) {
+		Console.d("ItemExecutionEvent", arg.e);
+		if (arg.e instanceof String) {
+			if (StringEx.equals((String) arg.e, "select=1")) {
+				_selIDList.add(((cptIDItem) arg.sender).getModel().ID);
+			}
+			if (StringEx.equals((String) arg.e, "select=0")) {
+				_selIDList.remove((Object) ((cptIDItem) arg.sender).getModel().ID);
+			}
+		}
+	}
+
+	// 列表中按钮点击事件
+	public void ItemClickEvent(EventArg<IDModel> arg) {
+		IDModel model = ((cptIDItem) arg.sender).getModel();
+
+	}
+
+}

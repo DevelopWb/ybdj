@@ -1,0 +1,570 @@
+package YangTalkback.Act;
+
+import java.net.Socket;
+import java.util.Date;
+import java.util.Random;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+
+
+import Tools.WifiConnect;
+import Tools.WifiConnect.WifiCipherType;
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.AlertDialogManage;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.CamVideoCoderProfile.ResolutionType;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.IDModel;
+import YangTalkback.Comm.IDUseType;
+import YangTalkback.Comm.MonitorPublishStatus;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Cpt.ImageButtonEx;
+import YangTalkback.Cpt.cptIDItem;
+import YangTalkback.Cpt.UIAdapter.GridAdapter;
+import YangTalkback.Cpt.UIAdapter.IDataSource;
+import YangTalkback.Cpt.UIAdapter.BaseAdapterEx.IItemViewCreater;
+import YangTalkback.Media.MediaCapturer;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import YangTalkback.Protocol.PBCallR;
+import YangTalkback.Protocol.PBLogoutR;
+import YangTalkback.Protocol.PBMedia;
+import YangTalkback.Protocol.PBMonitorCloseC;
+import YangTalkback.Protocol.PBMonitorCloseR;
+import YangTalkback.Protocol.PBMonitorOpenC;
+import YangTalkback.Protocol.PBMonitorOpenR;
+import android.R.bool;
+import android.annotation.SuppressLint;
+import android.app.KeyguardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Canvas;
+import android.media.AudioManager;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+@SuppressLint("NewApi")
+@AutoRefView(id = R.layout.act_monitor, layout = 0x09)
+public class actMonitor extends ActMonitorPage implements SurfaceHolder.Callback {
+	private ClientConnection _cc = null;
+	private SurfaceHolder _sh;
+	private MediaCapturer _mc;
+	private boolean _working = false;
+	private Thread _reconnectThread = null;
+	private boolean _needReconnect = true;
+
+	private int _Mode = -1;// 0为本地，1为3G
+	private KeyguardManager _mKeyguardManager;
+	@AutoRefView(id = R.act_monitor.viCamera, click = "viCamera_Click")
+	public SurfaceView viCamera;
+	@AutoRefView(id = R.act_monitor.ibBack, click = "ibBack_Click")
+	public ImageButtonEx ibBack;
+	@AutoRefView(id = R.act_monitor.tvInfo)
+	public TextView tvInfo;
+	@AutoRefView(id = R.act_monitor.llMark)
+	public LinearLayout llMark;
+	@AutoRefView(id = R.act_monitor.tvID)
+	public TextView tvID;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		_mKeyguardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+		InitControl();
+
+		_Mode = (Integer) GetActivityDefaultExtraValue();
+
+		if (_Mode == 0) {
+			if (StringEx.isEmpty(_ac.WifiSSID) || StringEx.isEmpty(_ac.LoginIDStr) || StringEx.isEmpty(_ac.ServerIP)) {
+				AlertAndOut("您未设置系统参数，请先设置系统参数。");
+				return;
+			}
+		} else if (_Mode == 1) {
+			if (StringEx.isEmpty(_ac.LoginIDStr)) {
+				AlertAndOut("您未设置系统参数，请先设置系统参数。");
+				return;
+			}
+			if (StringEx.isEmpty(_ac.RemoteServerIP)) {
+				AlertAndOut("您未设置云视频服务器IP，请先设置云视频服务器IP。");
+				return;
+			}
+		}
+
+		_sh = viCamera.getHolder();
+		_sh.addCallback(this);
+		if (!_mKeyguardManager.inKeyguardRestrictedInputMode()) {
+			CallByNewThread("InitConnection");
+		}
+
+	}
+
+	private void InitControl() {
+		this.ibBack.setAlpha(0x3f);
+		this.tvInfo.setAlpha(0x3f);
+		this.tvInfo.setVisibility(View.GONE);
+		this.tvID.setText(_ac.LoginIDStr);
+
+		AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+		mAudioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+	}
+
+	private void InitMedia(SurfaceHolder holder) {
+		_sh = holder;
+		CameraType camera = AppConfig.Instance.CameraSelected;
+		CamVideoCoderProfile profile = CamVideoCoderProfile.GetSystemDefault_CamVideoCoderProfile(camera);
+		if (_ac.VideoSizeModel != 0) {
+			profile = profile.Copy();
+			profile.VideoSize = ResolutionType.forId(_ac.VideoSizeModel);
+
+			if (profile.VideoSize == ResolutionType.VGA) {
+				if (_ac.VideoPriorityMode == 0)
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 2;// 75K
+				else
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 3;// 112.5k
+			}
+
+			if (profile.VideoSize == ResolutionType.QVGA) {
+				if (_ac.VideoPriorityMode == 0)
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 6;// 56.25k
+				else
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 8;// 75K
+			}
+
+			if (profile.VideoSize == ResolutionType._480P)
+				profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 2;
+
+			if (profile.VideoSize == ResolutionType._720P) {
+				if (_ac.VideoPriorityMode == 0)
+					profile.BitRate = 1200 * 1024;// 150k
+				else
+					profile.BitRate = 1600 * 1024;// 200K
+			}
+
+		} else {
+			profile = profile.Copy();
+			if (_Mode == 0) {
+				profile.VideoSize = ResolutionType.VGA;
+				if (_ac.VideoPriorityMode == 0)
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 1;// 37.5K
+				else
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 2;// 75k
+			} else if (_Mode == 1) {
+				profile.VideoSize = ResolutionType.QVGA;
+				if (_ac.VideoPriorityMode == 0)
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 3;
+				else
+					profile.BitRate = profile.VideoSize.getWidth() * profile.VideoSize.getHeight() * 4;
+			}
+
+		}
+		VideoEncodeCfg vCfg = VideoEncodeCfg.getDefaule(profile, _sh);
+		AudioEncodeCfg aCfg = AudioEncodeCfg.GetDefault();
+		_mc = new MediaCapturer(vCfg, aCfg, OnMediaCaptured);
+
+	}
+
+	public void ResetPublish() {
+		SetMonitorPublishStatus(MonitorPublishStatus.Closing);
+	}
+
+	public void ReConnect() {
+		ThreadEx.sleep(3000);
+		final RefObject<Boolean> refTry = new RefObject<Boolean>(true);
+		final RefObject<String> refMsg = new RefObject<String>(null);
+
+		final ICallback cancelCallBack = new ICallback() {
+			@Override
+			public void invoke() {
+				refTry.Value = false;
+				ThreadEx.stop(_reconnectThread);
+				finish();
+			}
+		};
+
+		while (refTry.Value) {
+			OpenLoading("正在重新尝试连接服务器", true, cancelCallBack);
+			ThreadEx.sleep(2000);
+			if (!refTry.Value) {
+				_reconnectThread = null;
+				return;
+			}
+			boolean result = ResetConnection(refMsg);
+			if (result) {
+				CloseLoading();
+				Notice("连接服务器成功");
+				ResetPublish();
+				_reconnectThread = null;
+				return;
+			} else {
+				OpenLoading(refMsg.Value + " 稍后将重新连接", true, cancelCallBack);
+				ThreadEx.sleep(1000);
+			}
+		}
+
+	}
+
+	public void InitConnection() {
+		OpenLoading("正在重置网络连接", false, null);
+		RefObject<String> refMsg = new RefObject<String>(null);
+		boolean result = ResetConnection(refMsg);
+		if (!result) {
+			AlertAndOut(refMsg.Value);
+		} else {
+			CloseLoading();
+			Notice("连接服务器成功");
+		}
+	}
+
+	private boolean TryConnectWifi3G(RefObject<String> refMsg) {
+		boolean result = false;
+		WifiConnect wc = new WifiConnect(this);
+		if (_Mode == 0) {
+			result = wc.Connect(_ac.WifiSSID, _ac.WifiPWD, WifiCipherType.WIFICIPHER_WPA, 30 * 1000);
+			if (!result)
+				refMsg.Value = "AP网络连接失败";
+		} else if (_Mode == 1) {
+			// wc.CloseWifi();
+			return true;
+		}
+		return result;
+	}
+
+	private ClientConnection TryConnect(RefObject<String> refMsg) {
+		if (this.IsFinished)
+			return null;
+
+		boolean wifi_connected = TryConnectWifi3G(refMsg);
+		if (this.IsFinished)
+			return null;
+		if (wifi_connected) {
+			StreamSocket ss = new StreamSocket();
+			try {
+				if (_Mode == 0)
+					ss.connect(_ac.ServerIP, _ac.ServerPort);// 连接服务器
+				else if (_Mode == 1)
+					ss.connect(_ac.RemoteServerIP, _ac.ServerPort);// 连接服务器
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				if (_Mode == 0)
+					refMsg.Value = "连接服务器失败";
+				else if (_Mode == 1)
+					refMsg.Value = "连接云视频服务器失败,请确认是否启用3G上网";
+
+				try {
+					ss.close();
+				} catch (Exception e1) {
+				}
+				return null;
+			}
+			ClientConnection cc = null;
+			try {
+				RefObject<String> refObj = new RefObject<String>(null);
+				cc = new ClientConnection(ss);
+				int timeoutSpan = 30;
+				if (_ac.UDPMode)
+					timeoutSpan = 90;
+				short id = (short) Integer.parseInt(_ac.LoginIDStr);
+				boolean logined = cc.Login(id, "", true, timeoutSpan, refObj);
+				if (logined) {
+					return cc;
+				} else {
+					ReleaseConnection(cc);
+					refMsg.Value = "登录失败:" + refObj.Value;
+					return null;
+				}
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				ReleaseConnection(cc);
+				refMsg.Value = "登录服务器失败";
+				return null;
+			}
+		} else {
+			return null;
+		}
+	}
+
+	public boolean ResetConnection(RefObject<String> refMsg) {
+		ReleaseConnection(_cc);
+		boolean result = SetupConnection(refMsg);
+		if (result) {
+			App.SetConnection(_cc);
+			ResetPublish();
+			return true;
+		} else {
+			return false;
+		}
+
+	}
+
+	private boolean SetupConnection(RefObject<String> refMsg) {
+		ClientConnection cc = TryConnect(refMsg);
+		if (cc != null) {
+			_cc = cc;
+			_cc.Disconnected.add(this, "CC_Disconnected");
+			_cc.Timeout.add(this, "CC_Timeout");
+			_cc.Logouted.add(this, "CC_Logouted");
+			return true;
+		} else {
+			ReleaseConnection(cc);
+			return false;
+		}
+	}
+
+	private void ReleaseConnection(ClientConnection cc) {
+		if (cc != null) {
+			cc.Disconnected.remove(this, "CC_Disconnected");
+			cc.Timeout.remove(this, "CC_Timeout");
+			cc.Logouted.remove(this, "CC_Logouted");
+			StreamSocket sock = cc.Sock;
+			try {
+				cc.Disconnect();
+			} catch (Exception e) {
+
+			}
+			try {
+				if (sock != null)
+					sock.close();
+			} catch (Exception e) {
+
+			}
+
+		}
+	}
+
+	public void SetMonitorPublishStatus(final MonitorPublishStatus status) {
+		App.SetMonitorPublishStatus(status);
+		post(new ICallback() {
+
+			@Override
+			public void invoke() {
+				if (status == MonitorPublishStatus.Publishing) {
+					tvInfo.setVisibility(View.VISIBLE);
+					llMark.getBackground().setAlpha(0xDf);
+				} else {
+					tvInfo.setVisibility(View.INVISIBLE);
+					llMark.getBackground().setAlpha(0xff);
+				}
+			}
+		});
+	}
+
+	public void CC_Error(EventArg<Exception> arg) {
+		Alert("网络异常");
+
+	}
+
+	public void CC_Disconnected(EventArg<Object> arg) {
+		Stop();
+		ReleaseConnection(_cc);
+		if (_needReconnect) {
+			OpenLoading("网络连接超时", false, null);
+			synchronized (this) {
+				if (_reconnectThread == null && _needReconnect) {
+					_reconnectThread = ThreadEx.GetThreadHandle(new CallBack(this, "ReConnect"), "重新连接线程");
+					_reconnectThread.start();
+				}
+			}
+		}
+
+	}
+
+	public void CC_Timeout(EventArg<Object> arg) {
+
+		Stop();
+		ReleaseConnection(_cc);
+		if (_needReconnect) {
+			OpenLoading("网络连接超时", false, null);
+			synchronized (this) {
+				if (_reconnectThread == null && _needReconnect) {
+					_reconnectThread = ThreadEx.GetThreadHandle(new CallBack(this, "ReConnect"), "重新连接线程");
+					_reconnectThread.start();
+				}
+			}
+		}
+
+	}
+
+	public void CC_Logouted(EventArg<PBLogoutR> arg) {
+		_needReconnect = false;
+		AlertAndOut(arg.e.Message);
+		Stop();
+		ReleaseConnection(_cc);
+	}
+
+	private IAction<MediaFrame> OnMediaCaptured = new IAction<MediaFrame>() {
+		@Override
+		public void invoke(MediaFrame frame) {
+
+			if (_cc != null && _cc.getIsConnected() && _cc.getIsLogined()) {
+				PBMedia pb = new PBMedia();
+				pb.From = _cc.ID;
+				pb.To = 0;
+				pb.Frame = frame;
+				if (!_ac.UDPMode)
+					_cc.PushMedia(pb);
+				else
+					_cc.PushMediaUDPMode(pb);
+			}
+
+		}
+	};
+
+	public void Start() {
+		if (_working)
+			return;
+
+		if (_mc == null)
+			InitMedia(_sh);
+		if (_mc != null) {
+			try {
+				_working = true;
+
+				Mute();
+				_mc.Start();
+
+				SetMonitorPublishStatus(MonitorPublishStatus.Publishing);
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				Alert(e.toString());
+				Stop();
+			}
+		}
+	}
+
+	public void Stop() {
+		if (!_working)
+			return;
+		_working = false;
+		if (_mc != null) {
+			try {
+				Mute();
+				SetMonitorPublishStatus(MonitorPublishStatus.Closing);
+				_mc.Stop();
+
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				RuntimeExceptionEx.PrintException(e);
+				if (_ac._D) {
+					throw RuntimeExceptionEx.Create(e);
+				}
+			} finally {
+				_mc = null;
+			}
+		}
+	}
+
+	public void Restart() {
+
+	}
+
+	public boolean MonitorOpenC(PBMonitorOpenC pb, RefObject<String> msg) {
+		if (App.MonitorPublishStatus == MonitorPublishStatus.Ready) {
+			Start();
+			return true;
+		} else {
+			if (App.MonitorPublishStatus == MonitorPublishStatus.Publishing)
+				return true;
+			else
+				return false;
+		}
+	}
+
+	public void MonitorCloseC(PBMonitorCloseC pb) {
+		if (App.MonitorPublishStatus == MonitorPublishStatus.Publishing) {
+			Stop();
+		}
+	}
+
+	public void MonitorCloseR(PBMonitorCloseR pb) {
+
+	}
+
+	public void ibBack_Click(EventArg<View> arg) {
+		if (App.MonitorPublishStatus == MonitorPublishStatus.Publishing) {
+			Alert("当前视频打开中不允许退出！");
+		} else {
+			Stop();
+			ThreadEx.stop(_reconnectThread);
+			ReleaseConnection(_cc);
+			finish();
+		}
+	}
+
+	public void viCamera_Click(EventArg<View> arg) {
+		if (_mc != null) {
+			_mc.AutoFocus();
+		}
+	}
+
+	public void Mute() {
+		AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+		mAudioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+
+		return false;
+	}
+
+	@Override
+	public void onStop() {
+		if (_ac.LeaveExitApp) {
+			Stop();
+			ThreadEx.stop(_reconnectThread);
+			ReleaseConnection(_cc);
+		}
+		super.onStop();
+	}
+
+	@Override
+	public void onPause() {
+		// if (_ac.LeaveExitApp) {
+		// Stop();
+		// ThreadEx.stop(_reconnectThread);
+		// ReleaseConnection(_cc);
+		// }
+		super.onPause();
+	}
+
+	@Override
+	public void finish() {
+		if (_ac.LeaveExitApp) {
+			Stop();
+			ThreadEx.stop(_reconnectThread);
+			ReleaseConnection(_cc);
+		}
+		super.finish();
+	}
+
+	@Override
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+		_sh = holder;
+	}
+
+	@Override
+	public void surfaceCreated(SurfaceHolder holder) {
+	}
+
+	@Override
+	public void surfaceDestroyed(SurfaceHolder holder) {
+	}
+}

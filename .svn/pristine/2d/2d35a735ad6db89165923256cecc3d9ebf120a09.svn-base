@@ -1,0 +1,9 @@
+﻿package YangTalkback;
+
+import YangTalkback.App.AppConfig;
+
+public class Global extends AppConfig
+{
+	public static Global Instance = new Global();
+	 
+}

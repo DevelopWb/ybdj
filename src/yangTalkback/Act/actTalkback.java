@@ -18,7 +18,6 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.GridView;
 import android.widget.Toast;
@@ -40,6 +39,7 @@ import AXLib.Utility.ListEx;
 import AXLib.Utility.Predicate;
 import AXLib.Utility.RuntimeExceptionEx;
 import AXLib.Utility.ThreadEx;
+import yangTalkback.HeadSetUtil;
 import Tools.RegOperateTool;
 import yangTalkback.App.App;
 import yangTalkback.Base.AutoRefView;
@@ -108,6 +108,11 @@ public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
+        HeadSetUtil.getInstance().setOnHeadSetListener(headSetListener);
+        HeadSetUtil.getInstance().open(this);
+
+
         adapter = BluetoothAdapter.getDefaultAdapter();
         mAudioManager = (AudioManager) this
                 .getSystemService(Context.AUDIO_SERVICE);
@@ -135,6 +140,8 @@ public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
         unbindService(mConn);
         unregisterReceiver(receiver);
         stopService(mIntent);
+
+        HeadSetUtil.getInstance().close(this);
         super.onDestroy();
     }
 
@@ -484,18 +491,77 @@ public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
     }
 
     public void btTalk_Touch(EventArg<MotionEvent> arg) {
-        if (!_talkBtnCanDown)
+
+        if (!_talkBtnCanDown){
+            Log.i("QWEQWE","按住B    "+arg.e.getAction());
             return;
+        }
+
         if (arg.e.getAction() == MotionEvent.ACTION_DOWN) {
             _capCtrl.Capture(true);
             _playCtrl.SetSinwayCanPlay(false);
             // _playCtrl.SetTalkButtonDownStatus(true);
+            Log.i("QWEQWE","按住A   "+arg.e.getAction());
         } else if (arg.e.getAction() == MotionEvent.ACTION_UP) {
             _capCtrl.Capture(false);
             _playCtrl.SetSinwayCanPlay(true);
             // _playCtrl.SetTalkButtonDownStatus(false);
+            Log.i("QWEQWE","松开  "+arg.e.getAction() );
         }
     }
+//    @Override
+//    public boolean onKeyDown(int keyCode, KeyEvent event) {
+//        if (KeyEvent.KEYCODE_HEADSETHOOK == keyCode) { //按下了耳机键
+//            if (event.getRepeatCount() == 0) {  //如果长按的话，getRepeatCount值会一直变大
+//                //短按
+//                Log.i("qweqwe","短按");
+//                _capCtrl.Capture(false);
+//                _playCtrl.SetSinwayCanPlay(true);
+//            } else {
+//                //长按
+//                Log.i("qweqwe","长按");
+//                _capCtrl.Capture(true);
+//                _playCtrl.SetSinwayCanPlay(false);
+//                // _playCtrl.SetTalkButtonDownStatus(true);
+//                Log.i("QWEQWE","按住SS  "+"SDA");
+//
+//            }
+//
+//        }
+//        return super.onKeyDown(keyCode, event);
+//    }
+
+    HeadSetUtil.OnHeadSetListener headSetListener = new HeadSetUtil.OnHeadSetListener() {
+        @Override
+
+        public void onDoubleClick() {
+
+            _capCtrl.Capture(false);
+            _playCtrl.SetSinwayCanPlay(true);
+            Log.i("QWEQWE", "双击");
+
+
+        }
+
+        @Override
+        public void onClick() {
+            _capCtrl.Capture(true);
+            _playCtrl.SetSinwayCanPlay(false);
+            Log.i("QWEQWE", "单击");
+        }
+
+        @Override
+        public void onThreeClick() {
+
+
+            Log.i("QWEQWE", "三连击");
+        }
+
+    };
+
+
+
+
 
 
     public void btQuit_Click(EventArg<View> arg) {
@@ -525,6 +591,7 @@ public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
 
     public void MediaPushIn(PBMedia pb) {
         _playCtrl.PushIn(pb);
+
     }
 
     public void PushOut(PBMedia pb) {
@@ -629,17 +696,12 @@ public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
             MyBinder mBinder = (MyBinder) service;
             VolumeService mVolumeService = mBinder.getService();
             mVolumeService.SetCallBackInBG(new CallBackInBG() {
-
                 @Override
                 public void up() {
                     //单工模式时生效
                     if (!_ac.IsTwowayMode) {
                         handler.sendEmptyMessage(15);
-
-
                     }
-
-
                 }
 
                 @Override
@@ -647,10 +709,7 @@ public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
                     //单工模式生效
                     if (!_ac.IsTwowayMode) {
                         handler.sendEmptyMessage(16);
-
                     }
-
-
                 }
             });
         }

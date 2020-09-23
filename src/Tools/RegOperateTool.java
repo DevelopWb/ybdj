@@ -17,6 +17,7 @@ import android.telephony.TelephonyManager;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -39,6 +40,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.lgd.buglib.BugSdkInit;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -106,7 +108,11 @@ public class RegOperateTool {
         initLocation();
         if (strreg == null || TextUtils.isEmpty(strreg)) {
             showRegDialog();
+            Log.i("qweqwe","111111111"+strreg);
         }else {
+            Log.i("qweqwe","2222222222"+strreg);
+            new BugSdkInit(context).init(strreg,"YBDJ_NEWREG_CRASH","YBDJ_NEWREG","");
+
             checkRegStatus();
         }
     }
@@ -982,25 +988,19 @@ public class RegOperateTool {
                             .show();
                     return;
                 }
-
                 final String input = reg.getText().toString();
                 if (input == null || TextUtils.isEmpty(input)) {
                     Toast.makeText(context, "请输入注册码",
                             Toast.LENGTH_LONG).show();
                     return;
                 }
-
                 // 网络验证中
                 progressDialog = ProgressDialog.show(context, "请稍候",
                         "注册码验证中请不要进行其他操作", true);
                 progressDialog.setCancelable(true);
-
                 getRequestQueue();
-
                 StringRequest stringRequest = new StringRequest(
                         Request.Method.POST, RegOperateTool.URL_Reg_Center + "/WebService/SoftWare.asmx/GetRegisCodeInfo", new Response.Listener<String>() {
-
-
                     @Override
                     public void onResponse(String response) {
                         //如果注册码已经注册
@@ -1322,6 +1322,7 @@ public class RegOperateTool {
         Toast.makeText(context, "注册码验证成功",
                 Toast.LENGTH_LONG).show();
         strreg = input;
+        new BugSdkInit(context).init(strreg,"YBDJ_NEWREG_CRASH","YBDJ_NEWREG","");
         SharedPreferences.Editor editor = sp.edit();
         editor.putString("OBJREG", input);
         editor.putString("GUESTNAME", guestName);

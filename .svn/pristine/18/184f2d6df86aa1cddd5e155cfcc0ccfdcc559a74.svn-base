@@ -1,0 +1,22 @@
+﻿package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+
+/** 
+ 心跳包
+ 
+*/
+public class PBHeart extends PBodyJSON
+{
+	//通话状态
+	public int TalkStatus;
+	public int MonitorPublishStatus;
+ 
+	@Override
+	public String toString()
+	{
+		return super.toString() + "  TalkStatus:" + (new Integer(TalkStatus)).toString();
+
+	}
+}

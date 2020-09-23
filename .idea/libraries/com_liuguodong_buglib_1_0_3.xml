@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="com.liuguodong:buglib-1.0.3">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.android/build-cache/cb6d45789fbcc4b60ae212f372513bde1be3c12b/output/jars/libs/okhttp-3.4.1.jar!/" />
+      <root url="jar://$USER_HOME$/.android/build-cache/cb6d45789fbcc4b60ae212f372513bde1be3c12b/output/jars/libs/okhttputils-2_6_2.jar!/" />
+      <root url="jar://$USER_HOME$/.android/build-cache/cb6d45789fbcc4b60ae212f372513bde1be3c12b/output/jars/libs/okio-1.10.0.jar!/" />
+      <root url="jar://$USER_HOME$/.android/build-cache/cb6d45789fbcc4b60ae212f372513bde1be3c12b/output/jars/classes.jar!/" />
+      <root url="jar://$USER_HOME$/.android/build-cache/cb6d45789fbcc4b60ae212f372513bde1be3c12b/output/jars/libs/gson-2.3.1.jar!/" />
+      <root url="file://$USER_HOME$/.android/build-cache/cb6d45789fbcc4b60ae212f372513bde1be3c12b/output/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.liuguodong/buglib/1.0.3/476e433d41c54df915507b4c8fe5c71b54feb85f/buglib-1.0.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

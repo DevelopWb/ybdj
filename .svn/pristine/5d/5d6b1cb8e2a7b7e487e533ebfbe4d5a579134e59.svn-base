@@ -1,0 +1,86 @@
+package YangTalkback.Net.Model;
+//package AXVChat.Net.Model;
+//
+//import java.io.Serializable;
+//
+//public class CRequestTalk implements Serializable {
+//
+//	/**
+//	 * 
+//	 */
+//	private static final long serialVersionUID = 1L;
+//	// / <summary>
+//	// / 接收人
+//	// / </summary>
+//	public String Receiver;
+//	// / <summary>
+//	// / 发起人
+//	// / </summary>
+//	public String Sender;
+//	// / <summary>
+//	// / 接收流名称
+//	// / </summary>
+//	public String ReceiverStreamName;
+//	// / <summary>
+//	// / 发起人流名称
+//	// / </summary>
+//	public String SenderStreamName;
+//	// / <summary>
+//	// / 发起人客户端类型
+//	// / </summary>
+//	public String SenderClientType;
+//	// / <summary>
+//	// / 发起人场景，监控=monitor、直播=live
+//	// / </summary>
+//	public String SenderScene;
+//
+//	@Override
+//	public String toString() {
+//		return String.format("Receiver:%s   Sender:%s    SenderClientType:%s", this.Receiver, this.Sender, this.SenderClientType);
+//	}
+//
+//	public static enum RequestTalkMode {
+//		// 未设置
+//		None((byte) 0x00),
+//		// 发布
+//		Initiate((byte) 0x01),
+//		// 接受
+//		Accept((byte) 0x02);
+//
+//		private byte id;
+//
+//		private RequestTalkMode(byte id) {
+//			this.id = id;
+//		}
+//
+//		private void setId(byte id) {
+//			this.id = id;
+//		}
+//
+//		public byte getId() {
+//			return id;
+//		}
+//
+//	}
+//
+//	public static enum RequestTalkResult {
+//		// 无应答
+//		Timeout((byte) -1),
+//		// 拒绝
+//		Reject((byte) 0),
+//		// 接受
+//		Accept((byte) 1);
+//		
+//		private byte id;
+//
+//		private RequestTalkResult(byte id) {
+//			this.id = id;
+//		}
+//		private void setId(byte id) {
+//			this.id = id;
+//		}
+//		public byte getId() {
+//			return id;
+//		}
+//	}
+//}

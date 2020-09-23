@@ -1,0 +1,76 @@
+package YangTalkback.Act;
+
+import java.io.File;
+import java.net.Socket;
+import java.util.Calendar;
+import java.util.Date;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile;
+import YangTalkback.Codec.MicEncoder;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Codec.MicEncoder.MicEncoderDataReceiver;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Cpt.cptDDLEx;
+
+import YangTalkback.Media.MediaCapturer;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileRead;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.MediaPlayer;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Module.Ring;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import android.app.DatePickerDialog;
+import android.app.DatePickerDialog.OnDateSetListener;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.res.Configuration;
+import android.media.AudioManager;
+import android.os.*;
+import android.view.*;
+import android.view.View.OnClickListener;
+import android.view.View.OnFocusChangeListener;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_main, layout = 0x03)
+public class actTest extends ActCLBase {
+
+	@AutoRefView(id = R.act_main.ddlChannel)
+	public Spinner ddlChannel;
+	public cptDDLEx<String> cptDDL = null;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		InitControls();
+	}
+
+	public void InitControls() {
+
+		cptDDL = new cptDDLEx<String>(this, ddlChannel);
+		cptDDL.Selected.add(this, "cptDDl_Selected");
+		MapEx<String, String> tab = new MapEx<String, String>();
+		tab.Set("1", "1");
+		tab.Set("2", "2");
+		tab.Set("3", "3");
+		cptDDL.setSource(tab);
+		cptDDL.Open();
+	}
+
+	public void cptDDl_Selected(EventArg<String> arg) {
+
+	}
+}

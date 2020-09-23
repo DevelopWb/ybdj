@@ -1,0 +1,200 @@
+package YangTalkback.Act;
+
+import java.net.Socket;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.CamVideoCoderProfile.ResolutionType;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Media.CameraHelper;
+import YangTalkback.Media.MediaCapturer;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_record, layout = 0x00)
+public class actRecord extends ActCLBase implements SurfaceHolder.Callback {
+
+	@AutoRefView(id = R.act_record.cbVideo, click = "cbVideo_Click")
+	public CheckBox cbVideo;
+	@AutoRefView(id = R.act_record.cbAudio, click = "cbAudio_Click")
+	public CheckBox cbAudio;
+
+	@AutoRefView(id = R.act_record.rbFront)
+	public RadioButton rbFront;
+	@AutoRefView(id = R.act_record.rbBack)
+	public RadioButton rbBack;
+
+	@AutoRefView(id = R.act_record.btStart, click = "btStart_Click")
+	public Button btStart;
+	@AutoRefView(id = R.act_record.btStop, click = "btStop_Click")
+	public Button btStop;
+	@AutoRefView(id = R.act_record.svCamera, click = "svCamera_Click")
+	public SurfaceView svCamera;
+
+	private SurfaceHolder _sh;
+	private MediaCapturer _mc;
+	private MediaFrameFileWrite _fw;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		if (!ExistSDCard()) {
+			AlertAndOut("未发现SD卡，该功能无法正常运行");
+			return;
+		} else {
+			if (CameraHelper.HasFrontCamera()) {
+				this.rbFront.setChecked(true);
+			} else if (CameraHelper.HasBackCamera()) {
+				this.rbBack.setChecked(true);
+			}
+			_sh = svCamera.getHolder();
+			_sh.addCallback(this);
+			// _sh.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+		}
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+		Close();
+		finish(3000);
+	}
+
+	public void Close() {
+		if (_mc != null) {
+			try {
+				_mc.Stop();
+				if (_fw != null)
+					_fw.Finish();
+
+			} catch (Exception e) {
+
+			} finally {
+
+			}
+		}
+
+	}
+
+	private IAction<MediaFrame> OnMediaCaptured = new IAction<MediaFrame>() {
+		@Override
+		public void invoke(MediaFrame frame) {
+			if (_fw != null) {
+				try {
+					_fw.Write(frame);
+				} catch (Exception e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					Alert("录像文件异常：" + e.toString());
+					btStop_Click(null);
+				}
+			}
+			Console.d("OnMediaCaptured", frame.toString());
+		}
+	};
+
+	public void Init(SurfaceHolder holder) {
+		_sh = holder;
+		CameraType camera = rbFront.isChecked() ? CameraType.FrontCamera : CameraType.BackCamera;
+		CamVideoCoderProfile profile = CamVideoCoderProfile.GetSystemDefault_CamVideoCoderProfile(camera);
+		if (_ac.VideoSizeModel != 0) {
+			profile = profile.Copy();
+			profile.VideoSize = ResolutionType.forId(_ac.VideoSizeModel);
+		}
+		VideoEncodeCfg vCfg = VideoEncodeCfg.getDefaule(profile, _sh);
+		AudioEncodeCfg aCfg = AudioEncodeCfg.GetDefault();
+		_mc = new MediaCapturer(vCfg, aCfg, OnMediaCaptured);
+		_mc.IsVideoPub = this.cbVideo.isChecked();
+		_mc.IsAudioPub = this.cbAudio.isChecked();
+
+	}
+
+	public void cbVideo_Click(EventArg<View> arg) {
+		if (_mc != null)
+			_mc.VideoSwitch(cbVideo.isChecked());
+	}
+
+	public void cbAudio_Click(EventArg<View> arg) {
+		if (_mc != null)
+			_mc.AudioSwitch(cbAudio.isChecked());
+	}
+
+	public void svCamera_Click(EventArg<View> arg) {
+		if (_mc != null) {
+			_mc.AutoFocus();
+		}
+	}
+
+	public void btStart_Click(EventArg<View> arg) {
+		if (_mc == null)
+			Init(_sh);
+		if (_mc != null) {
+			try {
+				String sd = Environment.getExternalStorageDirectory().getPath();
+				_fw = new MediaFrameFileWrite(sd + "/AXVChat_Test_Capture.mf");
+				_mc.Start();
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				Alert(e.toString());
+				btStop_Click(null);
+			}
+		}
+
+	}
+
+	public void btStop_Click(EventArg<View> arg) {
+
+		OpenLoading("正在停止", false, null);
+		Close();
+		Init(_sh);
+		CloseLoading();
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+		Close();
+		return super.OnKeyDown_Back();
+	}
+
+	private boolean ExistSDCard() {
+		if (android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
+			return true;
+		} else
+			return false;
+	}
+
+	@Override
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+		_sh = holder;
+		// Init(holder);
+
+	}
+
+	@Override
+	public void surfaceCreated(SurfaceHolder holder) {
+	}
+
+	@Override
+	public void surfaceDestroyed(SurfaceHolder holder) {
+	}
+}

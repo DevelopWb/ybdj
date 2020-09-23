@@ -3,9 +3,9 @@
     package="yangTalkback.Act"
     android:versionCode="1"
     android:versionName="1.0">
-
-    <uses-sdk android:targetSdkVersion="17" />
-
+    <uses-sdk android:targetSdkVersion="19" />
+    <uses-permission android:name="android.permission.SET_DEBUG_APP" >
+    </uses-permission>
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.READ_INPUT_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -57,8 +57,7 @@
         android:theme="@style/AppTheme">
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="219f40cc784c2ab39f3d2fb17ff8f056" />
-
+            android:value="bdb3ec4a8975a1889cdddabcdeaf0e2b" />
         <activity android:name=".actLogin"></activity>
         <activity
             android:name=".actLoading"
@@ -107,24 +106,14 @@
 
         <!-- 定位需要的服务 -->
         <service android:name="com.amap.api.location.APSService"></service>
-        <!--
-        <receiver android:name=".HeadSetReceiver" >
-            <intent-filter android:priority="10000" >
+
+        <receiver android:name="yangTalkback.MediaButtonReceiver" >
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.MEDIA_BUTTON" >
                 </action>
             </intent-filter>
         </receiver>
-        -->
 
-
-        <!--
-        <receiver android:name=".MediaButtonReceiver" >
-            <intent-filter android:priority="1000" >
-                <action android:name="android.intent.action.MEDIA_BUTTON" >
-                </action>
-            </intent-filter>
-        </receiver>
-        -->
     </application>
 
 </manifest>

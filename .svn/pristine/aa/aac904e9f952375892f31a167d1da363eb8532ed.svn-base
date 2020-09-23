@@ -1,0 +1,85 @@
+package YangTalkback.Cpt;
+
+import java.io.File;
+
+import YangTalkback.Act.R;
+import YangTalkback.Base.ActCLBase;
+import YangTalkback.Base.AutoRefView;
+import YangTalkback.Comm.IDModel;
+import YangTalkback.Comm.TalkStatus;
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.media.ThumbnailUtils;
+import android.net.Uri;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.AbsListView;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import AXLib.Utility.Console;
+import AXLib.Utility.EventArg;
+
+public class cptIDItem extends cptBase implements IContainer {
+
+	private Activity _act = null;
+	private boolean _controlSeted = false;
+	protected IDModel _model = null;
+	@AutoRefView(id = R.item_idinfo.llLayout)
+	public LinearLayout llLayout;
+	@AutoRefView(id = R.item_idinfo.btIDSelect, click = "OnClick")
+	public Button btIDSelect;
+
+	public cptIDItem(Activity act, IDModel model) {
+		super(act);
+		_act = act;
+		_model = model;
+
+	}
+
+	public void SetAct(ActCLBase act) {
+		_act = act;
+	}
+
+	@Override
+	public void SetView(View v) {
+		super.SetView(v);
+
+	}
+
+	public void setControl() {
+		btIDSelect.setText(String.valueOf(_model.ID));
+		btIDSelect.setEnabled(_model.IsOnLine);
+		if (_model.TalkStatus == TalkStatus.Idle.getValue() && _model.IsOnLine)
+			btIDSelect.setTextColor(Color.rgb(255, 0, 0));
+		else {
+			btIDSelect.setTextColor(Color.rgb(0, 0, 0));
+		}
+	}
+
+	public View getContainer() {
+		return llLayout;
+
+	}
+
+	public void OnClick(EventArg<View> arg) {
+		OnClick(arg.e);
+	}
+
+	public IDModel getModel() {
+		return _model;
+	}
+
+	public void setModel(IDModel model) {
+		if (!_controlSeted || _model != model) {
+			_model = model;
+			setControl();
+			_controlSeted = true;
+		}
+	}
+}

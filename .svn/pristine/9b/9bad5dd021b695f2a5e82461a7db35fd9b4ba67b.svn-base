@@ -1,0 +1,123 @@
+package YangTalkback.Codec;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.net.Inet4Address;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+import AXLib.Utility.CallBack;
+import AXLib.Utility.Console;
+import AXLib.Utility.Event;
+import AXLib.Utility.ICallback;
+import AXLib.Utility.IDisposable;
+import AXLib.Utility.ListEx;
+import AXLib.Utility.MemoryStream;
+import AXLib.Utility.Predicate;
+import AXLib.Utility.Queue;
+import AXLib.Utility.RuntimeExceptionEx;
+import AXLib.Utility.Task;
+import AXLib.Utility.ThreadEx;
+import AXLib.Utility.TimeUtil;
+import AXLib.Utility.WaitResult;
+import AXLib.Utility.Ex.H16Str;
+import AXLib.Utility.Ex.StringEx;
+import Tools.*;
+import Tools.SliceHeader.SliceType;
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Codec.FFCodec.AVCodecCfg;
+import YangTalkback.Codec.FFCodec.DFrame;
+import YangTalkback.Codec.FFCodec.FFCode;
+import YangTalkback.Codec.FFCodec.FFCodecType;
+import YangTalkback.Codec.FFCodec.FFObj;
+import YangTalkback.Comm.*;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.VideoImage;
+import android.R.array;
+import android.R.integer;
+import android.R.string;
+import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.hardware.Camera;
+import android.hardware.Camera.PreviewCallback;
+import android.hardware.Camera.ShutterCallback;
+import android.hardware.Camera.Size;
+import android.media.MediaRecorder;
+import android.os.Build;
+import android.os.Environment;
+import android.os.MemoryFile;
+import android.text.StaticLayout;
+import android.view.Surface;
+
+//2014-05-03ÐÞ¸ÄºóÎ´²âÊÔ
+@SuppressLint({ "NewApi", "NewApi" })
+public class CameraEncoderFFMPEG extends CameraEncoderYUV {
+
+	public CameraEncoderFFMPEG(VideoEncodeCfg cfg, int restartSpan, CameraEncoderDataReceiver receiver) {
+		super(cfg, restartSpan, receiver);
+
+	}
+
+	protected byte[] compressImage(byte[] data) {
+		byte[] yuv420p = new byte[data.length];
+		YUV420SP2YUV420(data, yuv420p, _previewSize.width, _previewSize.height);
+		if (_ffEnc == null) {
+			int width = _previewSize.width;
+			int height = _previewSize.height;
+			FFCode ffCode = FFCode.CODEC_ID_H264;
+			if (StringEx.equalsIgnoreCase(encCfg.encodeName, "H264"))
+				ffCode = FFCode.CODEC_ID_H264;
+			if (StringEx.equalsIgnoreCase(encCfg.encodeName, "FLV1"))
+				ffCode = FFCode.CODEC_ID_FLV1;
+			if (StringEx.equalsIgnoreCase(encCfg.encodeName, "H263"))
+				ffCode = FFCode.CODEC_ID_H263;
+
+			AVCodecCfg cfgEnc = AVCodecCfg.CreateVideo(width, height, ffCode, 2400);
+
+			_ffEnc = new FFObj(FFCodecType.VideoEncode);
+			try {
+				_ffEnc.init(cfgEnc);
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				throw RuntimeExceptionEx.Create(e);
+			}
+
+		}
+		DFrame df;
+		try {
+			df = _ffEnc.code(yuv420p);
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			throw RuntimeExceptionEx.Create(e);
+		}
+		if (df != null) {
+			Console.d("CameraEncoderYUV", String.format("size:%d   key:%d", df.nSize, df.nIsKeyFrame));
+			return df.Data;
+		} else {
+			Console.d("CameraEncoderYUV", "NULL");
+			return null;
+		}
+
+	}
+
+	public void Restart() {
+
+	}
+
+}

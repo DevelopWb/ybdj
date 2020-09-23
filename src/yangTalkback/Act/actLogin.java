@@ -1,6 +1,7 @@
 package yangTalkback.Act;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -29,6 +30,7 @@ import AXLib.Utility.RuntimeExceptionEx;
 import AXLib.Utility.StreamSocket;
 import AXLib.Utility.ThreadEx;
 import Tools.RegOperateTool;
+import Tools.RegUtil;
 import yangTalkback.App.App;
 import yangTalkback.App.AppConfig;
 import yangTalkback.Base.ActCLBase;
@@ -68,7 +70,7 @@ public class actLogin extends ActCLBase {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+//        setContentView(R.layout.act_login);
         acquireWakeLock();
     }
 
@@ -87,8 +89,6 @@ public class actLogin extends ActCLBase {
         }).start();
 
         boolean ret = AExecuteAsRoot.execute(cmds);
-
-
     }
 
     public void onScreenReady() {
@@ -100,13 +100,16 @@ public class actLogin extends ActCLBase {
             cbRPwd.setChecked(true);
             ibRPwd.setImageResource(R.drawable.ico_login_sel_active);
         }
-        regOperateTool = new RegOperateTool(this, "");
-        regOperateTool.SetCancelCallBack(new RegOperateTool.CancelCallBack() {
-            @Override
-            public void toFinishActivity() {
-                finish();
-            }
-        });
+        //        regOperateTool = new RegOperateTool(this, "");
+        //        regOperateTool.SetCancelCallBack(new RegOperateTool.CancelCallBack() {
+        //            @Override
+        //            public void toFinishActivity() {
+        //                finish();
+        //            }
+        //        });
+
+        initRegUtil();
+
         _loginGoPage = actMain.class;
         // _loginGoPage = actMonitor.class;
         String autorun = GetActivityDefaultExtraValue(false);
@@ -120,6 +123,29 @@ public class actLogin extends ActCLBase {
             tbPwd.setText("000000-00");
             btLogin_Click(null);
         }
+    }
+
+    /**
+     * @Params: ÀÏ×¢²áÂð
+     * @Author: liuguodong
+     * @Date: 2018/4/19 17:04
+     * @return£º
+     */
+    private void initRegUtil() {
+
+        RegUtil regUtil = new RegUtil(this);
+        regUtil.SetDialogCancelCallBack(new RegUtil.DialogCancelInterface() {
+            @Override
+            public void ToFinishActivity() {
+                finish();
+            }
+
+            @Override
+            public void ToFinishActivity_pwd() {
+                finish();
+            }
+        });
+
     }
 
     @Override
@@ -450,7 +476,8 @@ public class actLogin extends ActCLBase {
     private void acquireWakeLock() {
         if (null == wakeLock) {
             PowerManager pm = (PowerManager) this.getSystemService(POWER_SERVICE);
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "PostLocationService");
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE,
+                    "PostLocationService");
             if (null != wakeLock) {
                 wakeLock.acquire();
             }

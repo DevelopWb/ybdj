@@ -1,0 +1,225 @@
+package YangTalkback.Act;
+
+import java.io.EOFException;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketException;
+
+import AXLib.Model.KeyValue;
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import Tools.WifiConnect;
+import Tools.WifiConnect.WifiCipherType;
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.CamVideoCoderProfile.ResolutionType;
+import YangTalkback.Comm.CLLog;
+import YangTalkback.Cpt.cptDDLEx;
+import YangTalkback.Net.ClientConnection;
+import android.R.bool;
+import android.content.Intent;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_link, layout = 0x01)
+public class actLink extends ActCLBase {
+	private static boolean _D = AppConfig._D;
+	private static boolean _D1 = _D && true;// 本地测试
+	private int _testResult = 0;
+	@AutoRefView(id = R.act_link.tbID)
+	public EditText tbID;//
+	@AutoRefView(id = R.act_link.tbWifiPWD)
+	public EditText tbWifiPWD;//
+	@AutoRefView(id = R.act_link.tbWifiSSID)
+	public EditText tbWifiSSID;//
+	@AutoRefView(id = R.act_link.tbServerIP)
+	public EditText tbServerIP;//
+
+	@AutoRefView(id = R.act_link.cbTest)
+	public CheckBox cbTest;//
+
+	@AutoRefView(id = R.act_link.btOK, click = "btOK_Click")
+	public Button btOK;//
+	@AutoRefView(id = R.act_link.tbCancel, click = "btCancel_Click")
+	public Button btCancel;//
+	@AutoRefView(id = R.act_link.btSetting, click = "btSetting_Click")
+	public Button btSetting;//
+	@AutoRefView(id = R.act_link.ddlVideoSize)
+	public Spinner ddlVideoSize;// 视频分辨率
+
+	@AutoRefView(id = R.act_link.rbVideoPriorityMode0)
+	public RadioButton rbVideoPriorityMode0;
+	@AutoRefView(id = R.act_link.rbVideoPriorityMode1)
+	public RadioButton rbVideoPriorityMode1;
+	public cptDDLEx<Integer> cptVideoSize = null;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		InitControl();
+	}
+
+	private void InitControl() {
+
+		tbID.setText(_ac.LoginIDStr);
+		tbWifiSSID.setText(_ac.WifiSSID);
+		tbWifiPWD.setText(_ac.WifiPWD);
+		tbServerIP.setText(_ac.ServerIP);
+		if (StringEx.isEmpty(_ac.LoginIDStr) && _D1) {
+			tbWifiSSID.setText("aoxin");
+			tbWifiPWD.setText("18121812qq");
+			tbServerIP.setText("192.168.1.21");
+		}
+
+		rbVideoPriorityMode0.setChecked(_ac.VideoPriorityMode == 0);
+		rbVideoPriorityMode1.setChecked(_ac.VideoPriorityMode == 1);
+
+		cptVideoSize = new cptDDLEx<Integer>(this, ddlVideoSize);
+		ListEx<KeyValue<Integer, String>> videoSizeSource = new ListEx<KeyValue<Integer, String>>();
+		videoSizeSource.add(new KeyValue<Integer, String>(ResolutionType.VGA.getId(), "默认"));
+		// videoSizeSource.add(new KeyValue<Integer,
+		// String>(ResolutionType.QVGA.getId(), "普清"));
+		// videoSizeSource.add(new KeyValue<Integer,
+		// String>(ResolutionType.VGA.getId(), "标清"));
+		videoSizeSource.add(new KeyValue<Integer, String>(ResolutionType._720P.getId(), "高清"));
+
+		try {
+			cptVideoSize.setSource(videoSizeSource);
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			stack = RuntimeExceptionEx.GetStackTraceString(e);
+		}
+		cptVideoSize.setSelectedKey(_ac.VideoSizeModel);
+	}
+
+	public void Test() {
+		OpenLoading("正在连接AP网络", false, null);
+		WifiConnect wc = new WifiConnect(this);
+		boolean connected = wc.Connect(_ac.WifiSSID, _ac.WifiPWD, WifiCipherType.WIFICIPHER_WPA, 30 * 1000);
+		if (connected) {
+			OpenLoading("AP连接成功,正在尝试连接服务器", false, null);
+			ThreadEx.sleep(2000);
+			if (TestConnect()) {
+				_testResult = 1;
+				Alert("验证成功", true);
+			} else {
+				_testResult = -1;
+			}
+		} else {
+			_testResult = -1;
+			Alert("AP连接失败", true);
+		}
+	}
+
+	public boolean TestConnect() {
+
+		StreamSocket ss = new StreamSocket();
+		try {
+			ss.connect(_ac.ServerIP, _ac.ServerPort);// 连接服务器
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			Alert("连接服务器失败", true);
+			try {
+				ss.close();
+			} catch (Exception e1) {
+			}
+			return false;
+		}
+		OpenLoading("服务器连接成功", false, null);
+		ThreadEx.sleep(2000);
+		OpenLoading("正在登录服务器", false, null);
+		ClientConnection cc = null;
+		try {
+			RefObject<String> refObj = new RefObject<String>(null);
+			cc = new ClientConnection(ss);
+			short id = (short) Integer.parseInt(_ac.LoginIDStr);
+			boolean logined = cc.Login(id, "", false, refObj);
+			if (logined) {
+				OpenLoading("登录成功", false, null);
+				ThreadEx.sleep(2000);
+				return true;
+			} else {
+				Alert("登录失败:" + refObj.Value, true);
+				return false;
+			}
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			Alert("登录服务器异常", true);
+			return false;
+		} finally {
+			try {
+				if (cc != null)
+					cc.Disconnect();
+				ss.close();
+			} catch (Exception e1) {
+			}
+		}
+	}
+
+	public void btOK_Click(EventArg<View> arg) {
+		if (StringEx.isEmpty(tbID.getText().toString())) {
+			Alert("用户编号输入错误！");
+			return;
+		}
+		if (tbID.getText().toString().length() != 4) {
+			Alert("用户编号只能输入4位数字");
+			return;
+		}
+		if (cbTest.isChecked()) {
+			if (StringEx.isEmpty(tbWifiSSID.getText().toString())) {
+				Alert("AP名称输入错误！");
+				return;
+			}
+			if (StringEx.isEmpty(tbServerIP.getText().toString())) {
+				Alert("IP地址输入错误！");
+				return;
+			}
+		}
+		_ac.LoginIDStr = tbID.getText().toString();
+		_ac.WifiSSID = tbWifiSSID.getText().toString();
+		_ac.WifiPWD = tbWifiPWD.getText().toString();
+		_ac.ServerIP = tbServerIP.getText().toString();
+		_ac.VideoSizeModel = cptVideoSize.getSelectedKey();
+		_ac.VideoPriorityMode = rbVideoPriorityMode0.isChecked() ? 0 : 1;
+		_ac.Save();
+		_testResult = 0;
+		if (cbTest.isChecked())
+			CallByNewThread("Test");
+		else {
+			Alert("设置成功");
+		}
+	}
+
+	public void btCancel_Click(EventArg<View> arg) {
+		if (_testResult == -1) {
+			Prompt("连接失败，是否退出？", PromptButton.NO, new IAction<Prompt.PromptButton>() {
+				@Override
+				public void invoke(PromptButton obj) {
+					if (obj == PromptButton.YES) {
+						finish();
+					}
+				}
+			});
+		} else
+			finish();
+	}
+
+	private int _btSettingClickCount = 0;
+
+	public void btSetting_Click(EventArg<View> arg) {
+		if (_btSettingClickCount++ >= 15) {
+			startActivity(actSetting.class);
+			_btSettingClickCount = 0;
+		}
+	}
+}

@@ -1,0 +1,7 @@
+﻿ package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+public class PBCallClosureR extends PBCallClosureC
+{
+}

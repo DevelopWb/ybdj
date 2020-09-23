@@ -1,0 +1,62 @@
+package YangTalkback.Act;
+
+import java.io.File;
+import java.net.Socket;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.TalkStatus;
+
+import YangTalkback.Media.MediaCapturer;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileRead;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.MediaPlayer;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.res.Configuration;
+import android.media.AudioManager;
+import android.os.*;
+import android.view.*;
+import android.view.View.OnClickListener;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_loading, layout = 0x03)
+public class actLoading extends ActCLBase {
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		
+		if (1 == 2) {
+			startActivity(actTest.class);
+		} else {
+			String flag = (String) GetActivityDefaultExtraValue();
+			if (StringEx.equalsIgnoreCase("Autorun", flag)) {
+				if (_ac.IsAutorun)
+					startActivity(actLogin.class, flag);
+				else
+					App.exit();
+			} else {
+				startActivity(actLogin.class);
+			}
+		}
+		finish();
+	}
+
+}

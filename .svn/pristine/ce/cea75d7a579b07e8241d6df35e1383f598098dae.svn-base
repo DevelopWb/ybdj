@@ -1,0 +1,53 @@
+package YangTalkback.Act;
+
+import java.io.EOFException;
+import java.net.SocketException;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.ActAutoRefView;
+import YangTalkback.Base.ActCLBase;
+import YangTalkback.Base.Prompt.AlertDialogManage;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Comm.CLLog;
+import YangTalkback.Cpt.ImageButtonEx;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.*;
+import android.R.integer;
+import android.app.AlertDialog;
+import android.app.KeyguardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.os.Bundle;
+import android.view.Window;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+//import AXVChat.Net.Model.CRequestTalk;
+
+//视频对讲界面视图基类
+public class ActMonitorPage extends ActCLBase {
+
+	public void MediaPushIn(PBMedia pb) {
+
+	}
+
+	public void OnClientConnectionDisconnected() {
+
+	}
+
+	public void OnClientConnectionDisconnected(String msg) {
+		AlertAndExit(msg);
+	}
+
+	public void OnClientConnectionDisconnected(Exception e) {
+
+	}
+
+	public void OnClientConnectionTimeout() {
+
+	}
+
+}

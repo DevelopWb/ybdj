@@ -1,0 +1,164 @@
+package YangTalkback.Media;
+
+import YangTalkback.Comm.*;
+import YangTalkback.Media.MediaFrame.MediaFrameCommandType;
+import YangTalkback.Media.VideoImage.ScaleMode;
+import android.R.bool;
+
+import AXLib.Utility.CallBack;
+import AXLib.Utility.Console;
+import AXLib.Utility.Event;
+import AXLib.Utility.EventArg;
+import AXLib.Utility.Queue;
+import AXLib.Utility.RuntimeExceptionEx;
+import AXLib.Utility.ThreadEx;
+
+
+//媒体播放器
+public class MediaPlayer {
+	private Object _objAsyn = new Object();
+
+	private AudioPlay _ap;//音频播放
+	private VideoPlay _vp;//视频播放
+	private boolean _playing = false;//播放状态
+	private Thread _playThread = null;//播放线程
+	private Queue<MediaFrame> _audioQueue = new Queue<MediaFrame>();//音频播放队列
+	private Queue<MediaFrame> _videoQueue = new Queue<MediaFrame>();//视频播放队列
+	public boolean IsVideoPlay = true;//是否播放视频
+	public boolean IsAudioPlay = true;//是否播放音频
+	public final Event<Exception> Error = new Event<Exception>();//异常引发
+
+	public MediaPlayer(VideoImage img, int speakMode) {
+
+		_vp = new VideoPlay(img);
+		_ap = new AudioPlay(speakMode);
+
+	}
+
+	public void Start() throws Exception {
+		_playing = true;
+		_vp.Start();
+		_ap.Start();
+		_playThread = ThreadEx.GetThreadHandle(new CallBack(this, "PlayThread"), "网络媒体播放线程");
+		_playThread.start();
+	}
+
+	public void Stop() {
+		if (!_playing)
+			return;
+		_playing = false;
+		try {
+			_ap.Stop();
+			_vp.Stop();
+			ThreadEx.waitStop(_playThread, _objAsyn, 500);
+		} catch (Exception e) {
+			RuntimeExceptionEx.PrintException(e);
+		}
+	}
+
+	public void Received(MediaFrame frame) {
+		if (frame.nIsAudio == 0 && IsVideoPlay)
+			_videoQueue.add(frame);
+		if (frame.nIsAudio == 1 && IsAudioPlay)
+			_audioQueue.add(frame);
+		synchronized (_objAsyn) {
+			_objAsyn.notify();
+		}
+	}
+
+	public void PlayThread() {
+		try {
+			while (_playing) {
+				if (_audioQueue.size() > 0) {
+					MediaFrame frame = _audioQueue.remove();
+					Play(frame);
+				} else if (_videoQueue.size() > 0) {
+					MediaFrame frame = _videoQueue.remove();
+					// 如果缓冲超过50帧则丢到下一个关键帧
+					if (_videoQueue.size() > 50 && frame.nIsKeyFrame == 0) {
+						while (_videoQueue.size() > 0 && frame.nIsKeyFrame == 0)
+							frame = _videoQueue.remove();
+					}
+					Play(frame);
+				} else {
+					try {
+						synchronized (_objAsyn) {
+							_objAsyn.wait();
+						}
+					} catch (InterruptedException e) {
+						CLLog.Error(e);
+						String stackString = RuntimeExceptionEx.GetStackTraceString(e);
+						throw RuntimeExceptionEx.Create(e);
+					}
+				}
+				// Console.d("MediaPlayer", String.format("a:%d  v:%d",
+				// _audioQueue.size(), _videoQueue.size()));
+			}
+		} catch (Exception e) {
+			String stackString = RuntimeExceptionEx.GetStackTraceString(e);
+			throw RuntimeExceptionEx.Create(e);
+		}
+		_playThread = null;
+	}
+
+	private void Play(MediaFrame frame) {
+		try {
+			if (frame.nIsAudio == 0) {
+				if (IsVideoPlay)
+					_vp.Play(frame);
+			} else {
+				if (IsAudioPlay)
+					_ap.Play(frame);
+			}
+		} catch (Exception ex) {
+			String stackString = RuntimeExceptionEx.GetStackTraceString(ex);
+			CLLog.Error(ex);
+			OnError(RuntimeExceptionEx.Create("播放媒体帧出错", ex));
+			Stop();
+		}
+	}
+
+	public void SetPlayMode(boolean isKeyFrameMode) {
+		_vp.KeyFrameMode = isKeyFrameMode;
+
+	}
+
+	public void VideoSwitch(boolean status) {
+		this.IsVideoPlay = status;
+		if (_vp != null)
+			_vp.PlaySwitch(status);
+	}
+
+	public void AudioSwitch(boolean status) {
+		this.IsAudioPlay = status;
+		if (_ap != null)
+			_ap.PlaySwitch(status);
+	}
+
+	private void OnError(Exception e) {
+		Error.Trigger(this, e);
+	}
+
+	public void SetAudioSyncKey(String key) {
+		if (_ap != null)
+			_ap.SetAudioSyncKey(key);
+		else {
+			CLLog.Error("AudioPlay未实例化");
+			throw RuntimeExceptionEx.Create("AudioPlay未实例化");
+		}
+	}
+
+	public void SetScaleMode(ScaleMode mode) {
+		_vp.SetScaleMode(mode);
+	}
+
+	public ScaleMode GetScaleMode() {
+		return _vp.GetScaleMode();
+	}
+
+	public void CleanScreen() {
+		if (_vp != null)
+			_vp.Clean();
+	}
+
+}

@@ -1,0 +1,135 @@
+package YangTalkback.Codec;
+
+import java.nio.ByteBuffer;
+
+import YangTalkback.Codec.FFCodec.AVCodecCfg;
+import YangTalkback.Codec.FFCodec.DFrame;
+import YangTalkback.Codec.FFCodec.FFCode;
+import YangTalkback.Codec.FFCodec.FFCodecType;
+import YangTalkback.Codec.FFCodec.FFObj;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.VideoDisplayFrame;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import AXLib.Utility.Event;
+import AXLib.Utility.IDisposable;
+import AXLib.Utility.RuntimeExceptionEx;
+
+//FFMPEG 解码器
+public class FFDecoder implements IDisposable {
+	FFObj ffObj = null;
+	AVCodecCfg cfg = null;
+	boolean inited = false;
+	private int _width = 0;
+	private int _height = 0;
+
+	private int decodedFrame[];
+	// 图片像素存放区域
+	private byte[] mPixel = null;
+	// 图片存放内存区间
+	private ByteBuffer bmpBuffer = null;
+	// 解码后的图片
+	private Bitmap VideoBit = null;
+	private FFCode _ffCode;
+
+	// 解码一桢图片的事件
+	// public final Event<Bitmap> Decoded = new Event<Bitmap>();
+
+	public FFDecoder(FFCode code) {
+		_ffCode = code;
+	}
+
+	// 初始化
+	private void Init(MediaFrame mf) throws Exception {
+
+		if (mf == null || mf.nIsKeyFrame == 0)
+			throw new RuntimeException("初始化解码器出错，非关键帧不能初始化解码器");
+		if (mf.nWidth <= 0 || mf.nHeight <= 0) {
+			if (!tryResetSize(mf))
+				throw new RuntimeException("初始化解码器出错，长度或宽度错误");
+		}
+		try {
+			_width = mf.nWidth;
+			_height = mf.nHeight;
+
+			mPixel = new byte[_width * _height * 4];
+			bmpBuffer = ByteBuffer.wrap(mPixel);
+			VideoBit = Bitmap.createBitmap(_width, _height, Config.RGB_565);
+
+			cfg = AVCodecCfg.CreateVideo(_width, _height, _ffCode, 98000);
+			ffObj = new FFObj(FFCodecType.VideoDecode);
+			ffObj.init(cfg);
+			inited = true;
+		} catch (Throwable e) {
+			String stackString = RuntimeExceptionEx.GetStackTraceString(e);
+			throw RuntimeExceptionEx.Create(e);
+		}
+	}
+
+	// 初始化
+	private boolean tryResetSize(MediaFrame mf) throws Exception {
+
+		if (mf == null || mf.nIsKeyFrame == 0)
+			throw new RuntimeException("初始化解码器出错，非关键帧不能初始化解码器");
+
+		try {
+			int w = 1920;
+			int h = 1080;
+
+			byte[] mPixel = new byte[w * h * 4];
+			ByteBuffer bmpBuffer = ByteBuffer.wrap(mPixel);
+
+			AVCodecCfg cfg = AVCodecCfg.CreateVideo(w, h, _ffCode, 98000);
+			FFObj ffObj = new FFObj(FFCodecType.VideoDecode);
+			ffObj.init(cfg);
+
+			DFrame df = ffObj.code(mf.Data);
+			ffObj.Dispose();
+			int[] size = ffObj.tryGetVideoSize();
+			mf.nWidth = size[0];
+			mf.nHeight = size[1];
+			bmpBuffer.clear();
+
+			return true;
+		} catch (Throwable e) {
+			String stackString = RuntimeExceptionEx.GetStackTraceString(e);
+			throw RuntimeExceptionEx.Create(e);
+		}
+	}
+
+	public VideoDisplayFrame Deocde(MediaFrame mf) throws Exception {
+		if (!inited && mf.nIsKeyFrame == 1)
+			Init(mf);
+		if (inited) {
+			DFrame df = null;
+			try {
+				VideoDisplayFrame result = null;
+				df = ffObj.code(mf.Data);
+				if (df != null) {
+					System.arraycopy(df.Data, 0, mPixel, 0, df.nSize);
+					bmpBuffer.rewind();
+					VideoBit.copyPixelsFromBuffer(bmpBuffer);
+					result = new VideoDisplayFrame(VideoBit, mf.nTimetick);
+				}
+				return result;
+			} catch (Throwable e) {
+				String stackString = RuntimeExceptionEx.GetStackTraceString(e);
+				throw RuntimeExceptionEx.Create("FFDEC解码错误", e);
+			}
+
+		}
+		return null;
+	}
+
+	// // 引发解码完成事件
+	// private void OnDecoded(Bitmap bitmap) {
+	// if (Decoded.getHandleCount() >= 0)
+	// Decoded.Trigger(this, bitmap);
+	// }
+
+	@Override
+	public void Dispose() {
+		if (ffObj != null)
+			ffObj.Dispose();
+	}
+}

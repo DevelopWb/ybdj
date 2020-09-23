@@ -1,0 +1,529 @@
+package YangTalkback.Act;
+
+import java.net.Socket;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.Act.R;
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.AlertDialogManage;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.MicEncoder;
+import YangTalkback.Codec.MicEncoder.MicEncoderDataReceiver;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Comm.CLLog;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.IDModel;
+import YangTalkback.Comm.IDUseType;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Comm.TalkbackStatus;
+import YangTalkback.Cpt.cptIDItem;
+import YangTalkback.Cpt.cptMenu;
+import YangTalkback.Cpt.itemTalkbackInfo;
+import YangTalkback.Cpt.GenGridView.ActGenDataViewActivity1;
+import YangTalkback.Cpt.GenGridView.ActGetDataViewActivity;
+import YangTalkback.Cpt.GenGridView.GenGridViewAdapter;
+import YangTalkback.Cpt.GenGridView.GenGridViewDataSource;
+import YangTalkback.Cpt.UIAdapter.GridAdapter;
+import YangTalkback.Cpt.UIAdapter.IDataSource;
+import YangTalkback.Cpt.UIAdapter.BaseAdapterEx.IItemViewCreater;
+import YangTalkback.Media.AudioPlay;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrame.MediaFrameCommandType;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Net.Model.TalkbackChannelInfo;
+import YangTalkback.Net.Model.TalkbackStatusInfo;
+import YangTalkback.Protocol.*;
+import android.content.Intent;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_talkback, layout = 0x03)
+public class actTalkback extends ActGenDataViewActivity1<TalkbackStatusInfo> {
+
+	@AutoRefView(id = R.act_talkback.cptMenu)
+	public cptMenu cptMenu = new cptMenu(this);
+	@AutoRefView(id = R.act_talkback.btTalk, touch = "btTalk_Touch")
+	public Button btTalk;// 退出按钮
+	@AutoRefView(id = R.act_talkback.btQuit, click = "btQuit_Click")
+	public Button btQuit;// 退出按钮
+	@AutoRefView(id = R.act_talkback.gvGrid)
+	public GridView gvGrid;// 显示号码列表
+
+	private ListEx<IDModel> _SysIDList = new ListEx<IDModel>();// 保存系统的号码列表
+	private ListEx<Short> _selIDList = new ListEx<Short>();
+	private String _key = null;
+
+	private Thread _threadRefresh = null;
+	private TalkbackChannelInfo _info = null;
+	private ListEx<TalkbackStatusInfo> _statusList;
+	private TalkbackPlayCtrl _playCtrl = null;
+	private TalkbackCaptureCtrl _capCtrl = null;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+	}
+
+	public void onScreenReady() {
+		if (_connection == null) {
+			AlertAndExit("网络连接异常！");
+			return;
+		}
+		_key = GetActivityDefaultExtraValue(false);
+		if (_key == null)
+			_key = (String) GetActivityExtraValue("_notification_param");
+		if (_key == null) {
+			AlertAndOut("参数错误");
+			return;
+		}
+		InitControls();
+	}
+
+	public void InitControls() {
+
+		cptMenu.ExecutionEvent.add(this, "cptMenu_ExecutionEvent");
+		cptMenu.SetActiveMenu("Talkback");
+
+		_playCtrl = new TalkbackPlayCtrl(this, _connection.ID, _ac.IsTwowayMode, _ac.SpeakMode);
+		_capCtrl = new TalkbackCaptureCtrl(this, _connection.ID, _ac.IsTwowayMode, _ac.SpeakMode);
+
+		this.CallByNewThread("Enter");// 启用新线程调用方法
+
+	}
+
+	// 进入对讲
+	public void DoEnterTalkback(String key) {
+		finish();
+		super.DoEnterTalkback(key);
+
+	}
+
+	public void Quit() {
+
+		ThreadEx.ThreadCall(new ICallback() {
+			public void invoke() {
+				if (_connection != null && _connection.getIsLogined()) {
+					App.SetTalkbackStatus(TalkbackStatus.Leaveing);
+					PBCmdC pbc = new PBCmdC(_connection.ID, PBCmdC.CMD_Type_TALK_Leave, JSONHelper.toJSON(_key));
+					PBCmdR pbr = _connection.CmdC(pbc);
+					App.SetTalkbackStatus(TalkbackStatus.Idle);
+				}
+				finish();
+			}
+		});
+
+	}
+
+	/** 进入对讲 */
+	public void Enter() {
+		try {
+			OpenLoading("正在进入对讲", false, null);
+			if (_connection != null && _connection.getIsLogined()) {
+				App.SetTalkbackStatus(TalkbackStatus.Leaveing);
+				PBCmdC pbc = new PBCmdC(_connection.ID, PBCmdC.CMD_Type_TALK_Enter, JSONHelper.toJSON(_key));
+				PBCmdR pbr = _connection.CmdC(pbc);
+				if (pbr == null)
+					throw RuntimeExceptionEx.Create("_connection.CmdC(pbc)==null");
+				if (!pbr.Result) {
+					AlertAndOut(pbr.Message);
+					return;
+				}
+				_SysIDList = _connection.GetAllIDByCache();// 获取所有号码
+				// 获取对讲信息
+				pbc = new PBCmdC(_connection.ID, PBCmdC.CMD_Type_TALK_Info, JSONHelper.toJSON(_key));
+				pbr = _connection.CmdC(pbc);
+				_info = JSONHelper.forJSON(pbr.JSON, TalkbackChannelInfo.class);
+				// 过滤出在对讲通道的ID
+				_SysIDList = _SysIDList.Where(new Predicate<IDModel>() {
+					public boolean Test(IDModel obj) {
+						return _info.OriginalIDList.contains((Object) obj.ID);
+					}
+				});
+
+				_statusList = _SysIDList.Select(new ISelect<IDModel, TalkbackStatusInfo>() {
+					public TalkbackStatusInfo Select(IDModel t) {
+						TalkbackStatusInfo status = new TalkbackStatusInfo();
+						status.IDModel = t;
+						if (_info.ActiveIDList.contains(t.ID))
+							status.JoinStatus = 1;
+						else if (_info.AvailableIDList.contains(t.ID))
+							status.JoinStatus = 0;
+						else
+							status.JoinStatus = -1;
+
+						return status;
+					}
+				});
+				_playCtrl.SetTalkbackChannelInfo(_info);
+
+				// 设置通话模式
+				pbc = new PBCmdC(_connection.ID, PBCmdC.CMD_Type_TALK_SetMode, JSONHelper.toJSON(new String[] { _key, _ac.IsTwowayMode ? "1" : "0" }));
+				pbr = _connection.CmdC(pbc);
+
+				_playCtrl.Start();
+				_capCtrl.Start();
+				InitGridViewActivity(gvGrid, 2, R.layout.item_talkback_info);
+				_threadRefresh = CallByNewThread("RefreshThread");
+				App.SetTalkbackStatus(TalkbackStatus.Talkbacking);
+			}
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			CLLog.Error(e);
+			AlertAndOut("进入对讲失败");
+		} finally {
+			CloseLoading();
+		}
+	}
+
+	public void RefreshThread() {
+		ThreadEx.sleep(3000);
+		while (!this.IsFinished && !this.isFinishing() && _connection.getIsConnected()) {
+			try {
+				PBCmdC pbc = new PBCmdC(_connection.ID, PBCmdC.CMD_Type_TALK_Info, JSONHelper.toJSON(_key));
+				PBCmdR pbr = _connection.CmdC(pbc);
+				if (pbr == null)
+					continue;
+
+				_info = JSONHelper.forJSON(pbr.JSON, TalkbackChannelInfo.class);
+				if (_info == null)
+					continue;
+
+				// 过滤出在对讲通道的ID
+				_SysIDList = _SysIDList.Where(new Predicate<IDModel>() {
+					public boolean Test(IDModel obj) {
+						return _info.OriginalIDList.contains((Object) obj.ID);
+					}
+				});
+				_statusList = _SysIDList.Select(new ISelect<IDModel, TalkbackStatusInfo>() {
+					public TalkbackStatusInfo Select(IDModel t) {
+						TalkbackStatusInfo status = new TalkbackStatusInfo();
+						status.IDModel = t;
+						if (_info.ActiveIDList.contains(t.ID))
+							status.JoinStatus = 1;
+						else if (_info.AvailableIDList.contains(t.ID))
+							status.JoinStatus = 0;
+						else
+							status.JoinStatus = -1;
+						return status;
+					}
+				});
+				Reflash();
+				_playCtrl.SetTalkbackChannelInfo(_info);
+
+			} catch (Exception e) {
+				throw RuntimeExceptionEx.Create(e);
+			} finally {
+				ThreadEx.sleep(3000);
+			}
+		}
+	}
+
+	/** 退出对讲 */
+	public void Leave() {
+		try {
+			OpenLoading("正在退出对讲", false, null);
+			if (_connection != null && _connection.getIsLogined()) {
+				App.SetTalkbackStatus(TalkbackStatus.Leaveing);
+				PBCmdC pbc = new PBCmdC(_connection.ID, PBCmdC.CMD_Type_TALK_Leave, JSONHelper.toJSON(_key));
+				PBCmdR pbr = _connection.CmdC(pbc);
+				App.SetTalkbackStatus(TalkbackStatus.Idle);
+			}
+		} catch (Exception e) {
+
+		} finally {
+			CloseLoading();
+		}
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+		return false;
+	}
+
+	@Override
+	public void finish() {
+		_capCtrl.Stop();
+		_playCtrl.Stop();
+		ThreadEx.stop(_threadRefresh);
+		_threadRefresh = null;
+		super.finish();
+	}
+
+	public void cptMenu_ExecutionEvent(final EventArg<Object> arg) {
+		if (!StringEx.equalsIgnoreCase(arg.e.toString(), "Talkback")) {
+			Prompt("是否退出实时对讲？", PromptButton.NO, new IAction<Prompt.PromptButton>() {
+				@Override
+				public void invoke(PromptButton obj) {
+					if (obj == PromptButton.YES) {
+						ThreadEx.ThreadCall(new ICallback() {
+							public void invoke() {
+								Leave();
+								finish();
+								if (StringEx.equalsIgnoreCase(arg.e.toString(), "Record")) {
+									startActivity(actRecord.class);
+								}
+							}
+						});
+					}
+				}
+			});
+
+		}
+
+	}
+
+	// 获取数据项
+	public ListEx<TalkbackStatusInfo> getData(int index) {
+		if (index == 1)
+			return _statusList;
+		else
+			return new ListEx<TalkbackStatusInfo>();
+	}
+
+	public void btTalk_Touch(EventArg<MotionEvent> arg) {
+
+		if (arg.e.getAction() == MotionEvent.ACTION_DOWN) {
+			_capCtrl.Capture(true);
+			// _playCtrl.SetTalkButtonDownStatus(true);
+		} else if (arg.e.getAction() == MotionEvent.ACTION_UP) {
+			_capCtrl.Capture(false);
+			// _playCtrl.SetTalkButtonDownStatus(false);
+		}
+	}
+
+	public void btQuit_Click(EventArg<View> arg) {
+		Prompt("是否退出实时对讲？", PromptButton.NO, new IAction<Prompt.PromptButton>() {
+			@Override
+			public void invoke(PromptButton obj) {
+				if (obj == PromptButton.YES) {
+					Leave();
+					finish();
+				}
+			}
+		});
+	}
+
+	@Override
+	protected ActGenDataViewActivity1.IGridViewItemViewCPT<TalkbackStatusInfo> CreateItem(TalkbackStatusInfo model) {
+		return new itemTalkbackInfo(_act, model);
+	}
+
+	// 列表中按钮点击事件
+	public void ItemClickEvent(EventArg<TalkbackStatusInfo> arg) {
+
+	}
+
+	public void MediaPushIn(PBMedia pb) {
+		_playCtrl.PushIn(pb);
+	}
+
+	public void PushOut(PBMedia pb) {
+		if (!this.IsFinished && !this.isFinishing() && _connection.getIsConnected()) {
+			_connection.PushMedia(pb);
+		}
+	}
+
+	public void SetTalkButtonEnabled(final boolean isEnabled) {
+
+		post(new ICallback() {
+			public void invoke() {
+				btTalk.setEnabled(isEnabled);
+			}
+		});
+
+	}
+
+	public static class TalkbackCaptureCtrl implements MicEncoderDataReceiver {
+		private int _speekMode = 0;
+		private actTalkback _act;
+		private short _fromId = -1;
+		private boolean _isworking = false;
+		private boolean _isTwoway = false;
+		private boolean _isOpenCapture = false;
+		private boolean _isNeedSendMediaCommandStart = false;// 是否需要发送开始语音
+		private boolean _isNeedSendMediaCommandStop = false;// 是否需要发送停止语音
+		private MicEncoder _me = null;
+		private AudioEncodeCfg _cfg = null;
+
+		public TalkbackCaptureCtrl(actTalkback act, short fromId, boolean isTwoway, int speekMode) {
+			_act = act;
+			_fromId = fromId;
+			_speekMode = speekMode;
+			_isTwoway = isTwoway;
+			_isOpenCapture = isTwoway;
+		}
+
+		public void Start() {
+			if (_isworking)
+				return;
+			_isworking = true;
+			_cfg = AudioEncodeCfg.GetDefault();
+			// _cfg.samples = 640;
+			// _cfg.compression = 8;
+
+			_me = new MicEncoder(_cfg, this);
+			_me.start();
+		}
+
+		public void Stop() {
+			if (!_isworking)
+				return;
+			_isworking = false;
+			_me.stop();
+		}
+
+		public void Capture(boolean isOpen) {
+			_isNeedSendMediaCommandStart = isOpen;
+			_isNeedSendMediaCommandStop = !isOpen;
+			_isOpenCapture = isOpen;
+		}
+
+		@Override
+		public void Received(MediaFrame frame) {
+			if (_isOpenCapture || _isNeedSendMediaCommandStart || _isNeedSendMediaCommandStop) {
+				if (_isNeedSendMediaCommandStart) {
+					PBMedia pb = new PBMedia(_fromId, (short) 0, MediaFrame.CreateCommandMediaFrame(true, MediaFrame.MediaFrameCommandType.Start));
+					_act.PushOut(pb);
+					_isNeedSendMediaCommandStart = false;
+				}
+				if (_isOpenCapture) {
+					PBMedia pb = new PBMedia(_fromId, (short) 0, frame);
+					_act.PushOut(pb);
+				}
+				if (_isNeedSendMediaCommandStop) {
+					PBMedia pb = new PBMedia(_fromId, (short) 0, MediaFrame.CreateCommandMediaFrame(true, MediaFrame.MediaFrameCommandType.Stop));
+					_act.PushOut(pb);
+					_isNeedSendMediaCommandStop = false;
+				}
+			}
+
+		}
+	}
+
+	public static class TalkbackPlayCtrl {
+		private int _speekMode = 0;
+		private actTalkback _act;
+		private short _fromId = -1;
+		private boolean _isworking = false;
+		private boolean _isTwoway = false;
+		private boolean _isBtnDown = false;
+		private boolean _twowayCanPlay = false;
+		private boolean _sinwayCanPlay = false;
+		private HashMap<Short, AudioPlay> _apMap = new HashMap<Short, AudioPlay>();
+		private ListEx<Short> _twowayIDList = new ListEx<Short>();
+		private AQueue<PBMedia> _qPBCache = new AQueue<PBMedia>();
+		private TalkbackChannelInfo _chInfo = null;
+		private Thread _playThread = null;
+
+		public TalkbackPlayCtrl(actTalkback act, short fromId, boolean isTwoway, int speekMode) {
+			_act = act;
+			_fromId = fromId;
+			_speekMode = speekMode;
+			_isTwoway = isTwoway;
+			_twowayCanPlay = true;
+		}
+
+		public void SetTalkbackChannelInfo(TalkbackChannelInfo info) {
+			_chInfo = info;
+			_twowayIDList = info.TwowayIDList.ToList();
+		}
+
+		public void PushIn(PBMedia pb) {
+			_qPBCache.Enqueue(pb);
+		}
+
+		public void PushIn_Twoway(PBMedia pb) {
+			MediaFrame mf = pb.Frame;
+			AudioPlay ap = _apMap.get(pb.From);
+			ap.Play(mf);
+		}
+
+		public void PushIn_Sinway(PBMedia pb) {
+			MediaFrame mf = pb.Frame;
+			AudioPlay ap = _apMap.get(pb.From);
+			if (_twowayIDList.contains((Object) pb.From)) {// 如果讲话人使用双向
+
+				// 如果当前讲话按钮按下，等讲完话后再播对方声音
+				while (!_twowayCanPlay)
+					ThreadEx.sleep(10);
+
+				if (!mf.IsCommandFrame())// 过滤命令包
+					ap.Play(mf);
+
+			} else {
+				if (mf.IsCommandFrame()) {
+					if (mf.GetCommandType() == MediaFrameCommandType.Start) {
+						_sinwayCanPlay = true;
+						_act.SetTalkButtonEnabled(false);
+					} else if (mf.GetCommandType() == MediaFrameCommandType.Stop) {
+						_sinwayCanPlay = false;
+						_act.SetTalkButtonEnabled(true);
+					}
+				} else {
+					if (_sinwayCanPlay)
+						ap.Play(mf);
+				}
+
+			}
+		}
+
+		public void PlayThread() {
+			while (_isworking) {
+				if (_qPBCache.size() > 0) {
+					PBMedia pb = _qPBCache.Dequeue();
+					if (_isTwoway)
+						PushIn_Twoway(pb);
+					else
+						PushIn_Sinway(pb);
+
+				} else
+					ThreadEx.sleep(10);
+			}
+		}
+
+		public void SetTalkButtonDownStatus(boolean isDown) {
+			_isBtnDown = isDown;
+			_twowayCanPlay = !isDown;// 按下的时候不允许播对方双向
+		}
+
+		public void Start() {
+			if (_isworking)
+				return;
+			_isworking = true;
+			for (short id : _chInfo.OriginalIDList) {
+				AudioPlay ap = new AudioPlay(_speekMode, true);
+				_apMap.put(id, ap);
+				ap.Start();
+			}
+			_playThread = ThreadEx.GetThreadHandle(new CallBack(this, "PlayThread"));
+			_playThread.start();
+		}
+
+		public void Stop() {
+			if (!_isworking)
+				return;
+			_isworking = false;
+
+			ThreadEx.stop(_playThread);
+			_playThread = null;
+			_qPBCache.clear();
+			for (AudioPlay ap : _apMap.values()) {
+				ap.Stop();
+				ap.Dispose();
+			}
+		}
+	}
+
+}

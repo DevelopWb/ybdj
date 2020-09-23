@@ -1,0 +1,28 @@
+package YangTalkback.Cpt.GenGridView;
+
+import YangTalkback.Base.ActDBBase;
+import YangTalkback.Cpt.UIAdapter.BaseAdapterEx.IItemViewCreater;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AbsListView;
+import AXLib.Utility.EventArg;
+import AXLib.Utility.ListEx;
+import AXLib.Utility.Ex.StringEx;
+
+/** 通用GridView界面 **/
+public abstract class ActGetDataViewActivity<T> extends ActDBBase implements IItemViewCreater, IGenGridViewDataInterface<T> {
+	/** 获取数据视图 **/
+	public abstract View getItemView(int position, View convertView, ViewGroup parent);
+
+	/** 获取分页数据 **/
+	public abstract ListEx<T> getData(int pageIndex);
+
+	/** 列表中按钮点击事件 **/
+	public abstract void ItemClickEvent(EventArg<T> arg);
+
+	/** 初始化列表 **/
+	protected abstract void InitGridView();
+
+}

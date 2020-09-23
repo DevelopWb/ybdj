@@ -1,0 +1,26 @@
+package YangTalkback.Module;
+
+import java.io.Serializable;
+
+import YangTalkback.Act.AppStatusService;
+import YangTalkback.Base.ActCLBase;
+
+public class NotifyManage {
+
+	private static AppStatusService gets() {
+		return AppStatusService.Instance;
+	}
+
+	public static void notify(String msg, String title, Serializable param, ActCLBase act, Class<?> cls) {
+		gets().showNotification(msg, title, param, act, cls);
+	}
+
+	public static void notify(String msg, String title, ActCLBase act, int count) {
+
+	}
+
+	public static void cancel() {
+		gets().cancelNotification();
+	}
+
+}

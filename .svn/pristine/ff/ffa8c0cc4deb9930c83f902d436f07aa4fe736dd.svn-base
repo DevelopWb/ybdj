@@ -1,0 +1,99 @@
+package YangTalkback.Cpt;
+
+import java.lang.reflect.Field;
+
+import AXLib.Utility.Event;
+import AXLib.Utility.EventArg;
+import AXLib.Utility.ListEx;
+import AXLib.Utility.RuntimeExceptionEx;
+
+import YangTalkback.Act.R;
+import YangTalkback.App.App;
+import YangTalkback.Base.AutoRefView;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Media.VideoImage.ScaleMode;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
+import android.widget.*;
+
+public class cptVideoDisplay extends cptBase implements IContainer {
+	@AutoRefView(id = R.cpt_video.llCtn)
+	public LinearLayout llCtn;
+	@AutoRefView(id = R.cpt_video.tvTitle, click = "Title_Click")
+	public TextView tvTitle;
+	@AutoRefView(id = R.cpt_video.imgVideo)
+	public VideoImage Video;
+
+	@AutoRefView(id = R.cpt_video.ibScale, click = "ibScale_Click")
+	public ImageButtonEx ibScale;
+
+	private String _title = null;
+
+	public cptVideoDisplay(String title) {
+		super(null);
+		_title = title;
+	}
+
+	@Override
+	public void SetView(View v) {
+		super.SetView(v);
+		SetTitle(_title);
+		Video.ClickEvent.add(this, "Video_Click");
+		SetScaleVisibility(false);
+		ibScale.setAlpha(180);
+
+	}
+
+	public void SetTitle(String title) {
+
+		if (tvTitle == null)
+			throw new RuntimeExceptionEx("未设置标题视图");
+		if (title == null)
+			tvTitle.setVisibility(View.GONE);
+		else
+			tvTitle.setText(title);
+	}
+
+	public void SetActiveStatus(boolean status) {
+
+		if (status)
+			tvTitle.setBackgroundColor(0xFF3333CC);
+		else
+			tvTitle.setBackgroundColor(0xFF999999);
+	}
+
+	public void Video_Click(EventArg<View> arg) {
+		super.OnClick(arg.e);
+		// clickEvent.Trigger(cptVideoDisplay.this, null);
+	}
+
+	public void Title_Click(EventArg<View> arg) {
+		super.OnClick(arg.e);
+		// clickEvent.Trigger(cptVideoDisplay.this, null);
+	}
+
+	public void ibScale_Click(EventArg<View> arg) {
+		if (Video.GetScaleMode() == ScaleMode.FullScreen) {
+			Video.SetScaleMode(ScaleMode.Fit);
+			ibScale.setImageResource(R.drawable.video_scale_fit);
+			ibScale.setAlpha(180);
+		} else {
+			Video.SetScaleMode(ScaleMode.FullScreen);
+			ibScale.setImageResource(R.drawable.video_scale_fullscreen);
+			ibScale.setAlpha(180);
+		}
+
+	}
+
+	public void SetScaleVisibility(boolean status) {
+		this.ibScale.setVisibility(status ? View.VISIBLE : View.GONE);
+	}
+
+	public ViewGroup GetViewGroup() {
+		return llCtn;
+	}
+
+}

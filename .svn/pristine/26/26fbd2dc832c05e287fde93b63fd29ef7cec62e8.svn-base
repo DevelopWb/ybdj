@@ -1,0 +1,18 @@
+﻿package YangTalkback.Comm;
+
+public enum IDUseType
+{
+	Center, //中心
+	Point, //点
+	Terminal; //终端
+
+	public int getValue()
+	{
+		return this.ordinal();
+	}
+
+	public static IDUseType forValue(int value)
+	{
+		return values()[value];
+	}
+}

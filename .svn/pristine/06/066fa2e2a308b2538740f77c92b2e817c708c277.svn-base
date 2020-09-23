@@ -1,0 +1,68 @@
+package YangTalkback.Media;
+
+import AXLib.Utility.CallBack;
+import AXLib.Utility.Console;
+import AXLib.Utility.IDisposable;
+import AXLib.Utility.Queue;
+import AXLib.Utility.RuntimeExceptionEx;
+import AXLib.Utility.ThreadEx;
+import YangTalkback.App.App;
+import YangTalkback.Codec.SpeexDecode;
+import YangTalkback.Codec.SpeexEchoAC;
+import YangTalkback.Comm.CLLog;
+import android.R.integer;
+import android.content.Context;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+
+//ÉùÒô²¥·ÅÆ÷
+public class RecordAudioPlay extends AudioPlay {
+	private IAudioPlayEventHandle _handle;
+	private Thread _endCheckThread = null;
+	private boolean _isPlayFinish = false;
+
+	public RecordAudioPlay(int speakMode, IAudioPlayEventHandle handle) {
+		super(speakMode, false);
+		_handle = handle;
+	}
+
+	public void Play(MediaFrame[] mfs) {
+		_handle.PlayBegin();
+		for (MediaFrame mf : mfs)
+			Play(mf);
+		_endCheckThread = ThreadEx.GetThreadHandle(new CallBack(this, "EndCheckThread"));
+		_endCheckThread.start();
+	}
+
+	public void EndCheckThread() {
+		while (qFrames.size() > 0 || qDecQueue.size() > 0)
+			ThreadEx.sleep(10);
+		synchronized (this) {
+			if (!_isPlayFinish) {
+				_isPlayFinish = true;
+				_handle.PlayEnd();
+
+			}
+		}
+
+	}
+
+	public void Stop() {
+		ThreadEx.stop(_endCheckThread);
+		synchronized (this) {
+			if (!_isPlayFinish) {
+				_isPlayFinish = true;
+				_handle.PlayEnd();
+			}
+		}
+		super.Stop();
+	}
+
+	public static interface IAudioPlayEventHandle {
+		void PlayBegin();
+
+		void PlayEnd();
+	}
+
+}

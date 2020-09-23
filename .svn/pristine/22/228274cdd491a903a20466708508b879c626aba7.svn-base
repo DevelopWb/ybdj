@@ -1,0 +1,72 @@
+package YangTalkback.Act;
+
+import java.io.File;
+import java.net.Socket;
+import java.util.Calendar;
+import java.util.Date;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.TalkStatus;
+
+import YangTalkback.Media.MediaCapturer;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileRead;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.MediaPlayer;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import android.app.Activity;
+import android.app.DatePickerDialog;
+import android.app.DatePickerDialog.OnDateSetListener;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.*;
+import android.view.*;
+import android.view.View.OnClickListener;
+import android.view.View.OnFocusChangeListener;
+import android.widget.*;
+
+public class actGoTalkbackActivity extends Activity {
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		String key = (String) GetActivityExtraValue("_notification_param");
+
+		if (App.LastAct instanceof actTalkback) {
+			((actTalkback) App.LastAct).Quit();
+		}
+		finish();
+		Intent intent = new Intent(this, actTalkback.class);
+		intent.putExtra("_default", key);
+		startActivity(intent);
+
+	}
+
+	// 获取上一视图传递的参数
+	public Object GetActivityExtraValue(String key) {
+		Intent intent = getIntent();
+		if (intent == null)
+			return null;
+		Bundle extras = intent.getExtras();
+		if (extras == null)
+			return null;
+
+		Object object = extras.get(key);
+		return object;
+	}
+}

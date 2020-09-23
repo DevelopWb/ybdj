@@ -1,0 +1,451 @@
+package YangTalkback.Act;
+
+import java.io.Serializable;
+import java.math.RoundingMode;
+import java.net.Socket;
+import java.util.Date;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.AlertDialogManage;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.CamVideoCoderProfile.ResolutionType;
+import YangTalkback.Codec.Cfg.AudioEncodeCfg;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Comm.CLLog;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Cpt.cptVideoDisplay;
+import YangTalkback.Media.MediaCapturer;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileWrite;
+import YangTalkback.Media.MediaPlayer;
+import YangTalkback.Media.VideoImage;
+import YangTalkback.Media.MediaFrame.MediaFrameCommandType;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import YangTalkback.Protocol.PBCallClosureC;
+import YangTalkback.Protocol.PBMedia;
+import android.R.bool;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.drawable.BitmapDrawable;
+import android.os.*;
+import android.util.Printer;
+import android.view.*;
+import android.widget.*;
+
+//对话界面
+@AutoRefView(id = R.layout.act_talk, layout = 0x08)
+public class actTalk extends ActCLBase implements SurfaceHolder.Callback {
+	@AutoRefView(id = R.act_talk.ivTalking)
+	public ImageView ivTalking;// 通话状态图标
+	@AutoRefView(id = R.act_talk.btTalk)
+	public Button btTalk;// 对讲按钮
+	@AutoRefView(id = R.act_talk.btClose, click = "btClose_Click")
+	public Button btClose;// 关闭按钮
+
+	@AutoRefView(id = R.act_talk.svCamera, click = "svCamera_Click")
+	public SurfaceView svCamera;// 本地视频视图
+	@AutoRefView(id = R.act_talk.cptVideo)
+	public cptVideoDisplay cptVideo = new cptVideoDisplay(null);// 对方视频播放器
+
+	private short _otherSideID = (short) 0xffff;// 对讲方号码
+	private SurfaceHolder _sh;//
+	private MediaCapturer _mc;// 媒体采集器
+
+	private MediaPlayer _mp = null;// 媒体播放器
+	private Queue<MediaFrame> _queuePlay = new Queue<MediaFrame>();// 播放列表
+	public static Queue<MediaFrame> TempQueuePlay = new Queue<MediaFrame>();// 临时播放列表，用到在切换视图时存放的视频帧
+	private boolean _needPlayAudio = true;// 播放声音需要接收第一个音频包来启动，该字段用来标识是否已经播放过第一个包,false为已经播放了
+	private boolean _isCall = false;// 呼叫或接听，TRUE为呼叫,FALSE为接听
+	private boolean _speaking = true;// 当为true时讲话对方可以听到
+	private Date _lastReceSpeakStopTime = TimeUtil.GetCurrentUtilDate();// 最后收到对讲关闭时间
+	private boolean _speckIconStatus = true;// 通话图标状态
+	private boolean _runing = false;// 当前是否正在运行
+	private Thread _playThread = null;// 播放线程
+	private Thread _speakICONUpdateThread = null;// 更新通话图标状态线程;
+	private Object _syncPlay = new Object();// 播放同步锁
+	private boolean _D1 = AppConfig._D && false;// 关键桢模式
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		OpenLoading("正在连接");
+		TalkPageParams params = (TalkPageParams) GetActivityDefaultExtraValue();
+		_otherSideID = params.ToID;
+		_isCall = params.IsCall;
+		_speaking = _isCall;
+		_sh = svCamera.getHolder();
+		_sh.addCallback(this);
+		// _sh.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+
+		btTalk.setOnTouchListener(new Button.OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				if (event.getAction() == 0) {
+					_speaking = true;
+					SpeakChanged(_speaking);
+				} else if (event.getAction() == 1) {
+					_speaking = false;
+					SpeakChanged(_speaking);
+				}
+				return false;
+			}
+		});
+		btTalk.setEnabled(!_isCall);
+		SetSparkIcon(_isCall);
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+		Closure();
+		finish(3000);
+	}
+
+	// 开始对话
+	public void Start() {
+		if (_runing)
+			return;
+		_runing = true;
+		if (_mc != null) {
+			try {
+				if (_D1)
+					_mp.SetPlayMode(_D1);
+				_mc.Start();
+				_mp.Start();
+				_playThread = CallByNewThread("PlayThread");
+				_speakICONUpdateThread = CallByNewThread("UpdateSpeakICONThread");
+				CloseLoading();
+				Notice("开始通话");
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				Alert(e.toString());
+				btClose_Click(null);
+			}
+		}
+	}
+
+	// 停止对话
+	public void Stop() {
+		if (!_runing)
+			return;
+		_runing = false;
+		if (_mc != null) {
+			try {
+				_queuePlay.clear();
+				OpenLoading("通话已断开,正在关闭连接", false, null);
+				ThreadEx.stop(_playThread);
+				ThreadEx.stop(_speakICONUpdateThread);
+				_mp.Stop();
+				final MediaCapturer mc = _mc;
+				mc.OnStoped = new IAction<MediaCapturer>() {
+					@Override
+					public void invoke(MediaCapturer obj) {
+						OnStoped();
+					}
+				};
+				mc.Stop();
+			} catch (Exception e) {
+
+			} finally {
+
+			}
+		}
+	}
+
+	public void OnStoped() {
+		App.SetTalkStatus(TalkStatus.Closing);
+	}
+
+	// 关闭会话
+	public void Closure() {
+		if (_connection != null && _connection.getIsConnected()) {
+			_connection.CallClosure(_otherSideID, ClosureCase.OperClose.getValue(), String.format("号码%d断开通话", _connection.ID));
+		}
+		Stop();
+	}
+
+	// 关闭会话
+	public void Closure(PBCallClosureC pb) {
+		if (App.TalkStatus == TalkStatus.Idle)
+			return;
+		if (App.TalkStatus != TalkStatus.Closing) {
+			Stop();
+			App.SetTalkStatus(TalkStatus.Closing);
+			// 5秒钟没有点确定自动转回拔号界面
+
+			Thread closeThread = ThreadEx.GetThreadHandle(new ICallback() {
+				public void invoke() {
+					ThreadEx.sleep(10 * 1000);
+					finish();
+				}
+			});
+			final RefObject<Thread> refThread = new RefObject<Thread>(closeThread);
+
+			final AlertDialogManage dialog = this.Prompt("通话已关闭", PromptButton.YES, new IAction<Prompt.PromptButton>() {
+				@Override
+				public void invoke(PromptButton obj) {
+					ThreadEx.stop(refThread.Value);
+					finish();
+				}
+			});
+			closeThread.start();
+
+		}
+	}
+
+	// 关闭会话
+	public void CallClosureC(PBCallClosureC pb) {
+		if (App.TalkStatus == TalkStatus.Talking)
+			Closure(pb);
+
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+		return false;
+	}
+
+	// 通话状态变更
+	private void SpeakChanged(boolean status) {
+		MediaFrameCommandType cmd = status ? MediaFrameCommandType.Start : MediaFrameCommandType.Stop;
+		MediaFrame frame = MediaFrame.CreateCommandMediaFrame(true, cmd);
+		PBMedia pb = new PBMedia();
+		pb.From = _connection.ID;
+		pb.To = _otherSideID;
+		pb.Frame = frame;
+		Console.d("MediaFrameCommand", frame.toString());
+		MediaPushOut(pb);
+		SetSparkIcon(status);
+	}
+
+	// 当采集到媒体引发该事件
+	private IAction<MediaFrame> OnMediaCaptured = new IAction<MediaFrame>() {
+		@Override
+		public void invoke(MediaFrame frame) {
+			PBMedia pb = new PBMedia();
+			pb.From = _connection.ID;
+			pb.To = _otherSideID;
+			pb.Frame = frame;
+			MediaPushOut(pb);
+			if (_needPlayAudio && frame.nIsAudio == 1) {
+				PBMedia firstAudio = new PBMedia();
+				pb.From = _connection.ID;
+				pb.To = _connection.ID;
+				pb.Frame = frame;
+				MediaPushIn(pb);
+				_needPlayAudio = false;
+			}
+		}
+	};
+
+	// 播放线程
+	public void PlayThread() {
+		_queuePlay.addAll(TempQueuePlay);
+		TempQueuePlay.clear();
+		while (_runing) {
+			try {
+				if (_queuePlay.size() > 0) {
+					MediaFrame frame = _queuePlay.poll();
+					if (frame.nIsAudio == 1 && frame.IsCommandFrame()) {
+						OnAudioPlayStatusChange(frame);
+					} else {
+						_mp.Received(frame);
+					}
+				} else {
+					try {
+						synchronized (_syncPlay) {
+							_syncPlay.wait();
+						}
+					} catch (Exception e) {
+						if (_runing) {
+							String stack = RuntimeExceptionEx.GetStackTraceString(e);
+							CLLog.Error(e);
+							break;
+						}
+					}
+				}
+
+			} catch (Exception e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				throw RuntimeExceptionEx.Create(e);
+			}
+		}
+	}
+
+	// 引发声音播放状态变更
+	private void OnAudioPlayStatusChange(MediaFrame frame) {
+		MediaFrameCommandType cmd = MediaFrameCommandType.forId(frame.nEx);
+		Console.d("MediaFrameCommand", frame.toString());
+		if (_isCall) {// 如果呼叫模式则对方讲话之后这里就不发送
+			if (cmd == MediaFrameCommandType.Stop || cmd == MediaFrameCommandType.Twoway) {// 记录收到停止指令的时间
+				_lastReceSpeakStopTime = TimeUtil.GetCurrentUtilDate();
+				_speaking = true;
+			} else {
+				_speaking = false;// 设置为不允许讲话
+				SetSparkIcon(false);
+
+			}
+
+		} else {// 接听模式
+
+		}
+	}
+
+	// 接收到媒体帧
+	@Override
+	public void MediaPushIn(PBMedia pb) {
+		if (_connection != null && _connection.ID == pb.To && _otherSideID == pb.From) {
+			_queuePlay.add(pb.Frame);
+			synchronized (_syncPlay) {
+				_syncPlay.notify();
+			}
+		}
+	}
+
+	// 发送媒体帧
+	public void MediaPushOut(PBMedia pb) {
+		if (_connection != null && _connection.getIsConnected() && App.TalkStatus == TalkStatus.Talking) {
+
+			if (pb.Frame.nIsAudio == 0) {// 发送视频
+				_connection.PushMedia(pb);
+			} else {// 发送音频
+				// 当收到对方的讲话停止超过1秒钟才会将音频发送出去，优化回音
+				boolean canSpeak = _speaking && TimeUtil.XYNow(TimeUtil.AddSeconds(_lastReceSpeakStopTime, 1));
+
+				if (canSpeak || pb.Frame.IsCommandFrame()) {
+					_connection.PushMedia(pb);
+				}
+
+			}
+		}
+
+	}
+
+	// 更新对话图标状态线程
+	public void UpdateSpeakICONThread() {
+		while (_runing) {
+			try {
+				// 当收到对方的讲话停止超过1秒钟才会将音频发送出去，优化回音
+				boolean canSpeak = _speaking && TimeUtil.XYNow(TimeUtil.AddSeconds(_lastReceSpeakStopTime, 1));
+				if (canSpeak) {
+					// 重置麦克风图标
+					SetSparkIcon(true);
+				}
+			} catch (Exception e) {
+
+			}
+			ThreadEx.sleep(100);
+		}
+	}
+
+	// 初始化
+	public void Init(SurfaceHolder holder) {
+		_sh = holder;
+		CameraType camera = AppConfig.Instance.CameraSelected;
+		CamVideoCoderProfile profile = CamVideoCoderProfile.GetSystemDefault_CamVideoCoderProfile(camera);
+		if (_ac.VideoSizeModel != 0) {
+			profile = profile.Copy();
+			profile.VideoSize = ResolutionType.forId(_ac.VideoSizeModel);
+		}
+		VideoEncodeCfg vCfg = VideoEncodeCfg.getDefaule(profile, _sh);
+		AudioEncodeCfg aCfg = AudioEncodeCfg.GetDefault();
+		_mc = new MediaCapturer(vCfg, aCfg, OnMediaCaptured);
+		_mp = new MediaPlayer(cptVideo.Video, _ac.SpeakMode);
+		_mp.IsAudioPlay = true;
+		_mp.IsVideoPlay = true;
+		Start();
+	}
+
+	// 调焦
+	public void svCamera_Click(EventArg<View> arg) {
+		if (_mc != null)
+			_mc.AutoFocus();
+	}
+
+	// 讲话按钮
+	public void btTalk_Click(EventArg<View> arg) {
+		_speaking = !_speaking;
+	}
+
+	// 关闭对讲
+	public void btClose_Click(EventArg<View> arg) {
+		Notice("通话结束");
+		Closure();
+		finish(3000);
+	}
+
+	// 设置对讲图标
+	private void SetSparkIcon(final boolean status) {
+		if (_speckIconStatus == status)
+			return;
+		_speckIconStatus = status;
+		post(new ICallback() {
+			@Override
+			public void invoke() {
+				ivTalking.setImageDrawable(getResources().getDrawable(status ? R.drawable.ic_recorded : R.drawable.ic_recorded_off));
+			}
+		});
+
+	}
+
+	@Override
+	public void OnClientConnectionTimeout() {
+		OpenLoading("与服务器连接超时...");
+		Closure();
+		Intent intent = new Intent();
+		setResult(TimeoutReconnect, intent);
+		finish(3000);
+	}
+
+	// 设置不允许屏幕切换
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig); // do something
+	}
+
+	@Override
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+		final SurfaceHolder _holder = holder;
+		post(new ICallback() {
+			@Override
+			public void invoke() {
+				Init(_holder);
+			}
+		});
+
+	}
+
+	@Override
+	public void surfaceCreated(SurfaceHolder holder) {
+	}
+
+	@Override
+	public void surfaceDestroyed(SurfaceHolder holder) {
+	}
+
+	// 对讲界面切换参数
+	public static class TalkPageParams implements Serializable {
+		public short ToID;// 对讲另一方号码
+		public Boolean IsCall;// 对讲模式
+
+		public TalkPageParams(short toId, Boolean isCall) {
+			ToID = toId;
+			IsCall = isCall;
+		}
+
+	}
+}

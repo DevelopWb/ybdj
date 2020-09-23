@@ -450,7 +450,8 @@ public class actMain extends ActGenDataViewActivity1<IDModel> {
 
         }
         if (StringEx.equalsIgnoreCase(arg.e.toString(), "Record")) {
-            startActivity(actRecord.class);
+            startActivity(
+                    actRecord.class);
 
         }
     }

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/YangTalkback_NR.iml" filepath="$PROJECT_DIR$/YangTalkback_NR.iml" />
+      <module fileurl="file://$PROJECT_DIR$/YangTalkback_NR.iml" filepath="$PROJECT_DIR$/YangTalkback_NR.iml" group="YangTalkback_NR" />
     </modules>
   </component>
 </project>

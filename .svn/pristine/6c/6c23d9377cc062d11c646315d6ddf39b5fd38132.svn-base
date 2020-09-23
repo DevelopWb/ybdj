@@ -1,0 +1,119 @@
+package YangTalkback.Act;
+
+import java.io.EOFException;
+import java.net.Socket;
+import java.net.SocketException;
+
+import AXLib.Model.KeyValue;
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Codec.CamVideoCoderProfile.ResolutionType;
+import YangTalkback.Comm.CLLog;
+import YangTalkback.Cpt.cptDDLEx;
+import YangTalkback.Net.ClientConnection;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+//参数设置界面
+@AutoRefView(id = R.layout.act_setting, layout = 0x00)
+public class actSetting extends ActCLBase {
+	private static boolean _D = AppConfig._D;
+	private static boolean _D1 = _D && false;// 本地测试
+
+	@AutoRefView(id = R.act_setting.tbVideoCaptureRestartSpan)
+	public EditText tbVideoCaptureRestartSpan;// 视频重置时间
+	@AutoRefView(id = R.act_setting.rbFrontCamera)
+	public RadioButton rbFrontCamera;// 前置摄像头选择
+	@AutoRefView(id = R.act_setting.rbBackCamera)
+	public RadioButton rbBackCamera;// 后置摄像头选择
+
+	@AutoRefView(id = R.act_setting.cbVideoCaptureStopMode1)
+	public RadioButton rbVideoCaptureStopMode1;// 视频采集模式
+	@AutoRefView(id = R.act_setting.cbVideoCaptureStopMode2)
+	public RadioButton rbVideoCaptureStopMode2;// 视频采集模式
+	@AutoRefView(id = R.act_setting.cbLeaveExitApp)
+	public CheckBox cbLeaveExitApp;// 切换后台处理方式
+	@AutoRefView(id = R.act_setting.cbTimeoutReconnect)
+	public CheckBox cbTimeoutReconnect;// 超时处理方式
+	@AutoRefView(id = R.act_setting.cbSpeakMode)
+	public CheckBox cbSpeakMode;// 通话模式
+	@AutoRefView(id = R.act_setting.cbVideoCapMode)
+	public CheckBox cbVideoEncodeMode;// 视频模式
+
+	@AutoRefView(id = R.act_setting.tbPicModeQuality)
+	public EditText tbPicModeQuality;// 图片质量
+
+	@AutoRefView(id = R.act_setting.btSave, click = "btSave_Click")
+	public Button btLogin;// 保存按钮
+	@AutoRefView(id = R.act_setting.ddlVideoSize)
+	public Spinner ddlVideoSize;// 视频分辨率
+
+	@AutoRefView(id = R.act_setting.rbTCP)
+	public RadioButton rbTCP;// 传输模式
+	@AutoRefView(id = R.act_setting.rbUDP)
+	public RadioButton rbUDP;// 传输模式
+
+	public cptDDLEx<Integer> cptVideoSize = null;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		super.onScreenReady();
+		rbFrontCamera.setChecked(_ac.CameraSelected == CameraType.FrontCamera);
+		rbBackCamera.setChecked(_ac.CameraSelected != CameraType.FrontCamera);
+
+		cbSpeakMode.setChecked(_ac.SpeakMode == 0);
+		cbLeaveExitApp.setChecked(_ac.LeaveExitApp);
+		cbTimeoutReconnect.setChecked(_ac.TimeoutReconnect);
+
+		cbVideoEncodeMode.setChecked(_ac.VideoEncodeMode == 1);
+		rbVideoCaptureStopMode1.setChecked(_ac.VideoCaptrueStopMode == 0);
+		rbVideoCaptureStopMode2.setChecked(_ac.VideoCaptrueStopMode == 1);
+		tbVideoCaptureRestartSpan.setText(String.valueOf(_ac.VideoCaptrueRestartMinutes));
+		tbPicModeQuality.setText(String.valueOf(_ac.PicModeQuality));
+
+		cptVideoSize = new cptDDLEx<Integer>(this, ddlVideoSize);
+		ListEx<KeyValue<Integer, String>> videoSizeSource = new ListEx<KeyValue<Integer, String>>();
+		videoSizeSource.add(new KeyValue<Integer, String>(0, "默认"));
+		videoSizeSource.add(new KeyValue<Integer, String>(ResolutionType.QVGA.getId(), "320*240"));
+		videoSizeSource.add(new KeyValue<Integer, String>(ResolutionType.VGA.getId(), "640*480"));
+		videoSizeSource.add(new KeyValue<Integer, String>(ResolutionType._480P.getId(), "780*480"));
+		videoSizeSource.add(new KeyValue<Integer, String>(ResolutionType._720P.getId(), "1280*720"));
+		cptVideoSize.setSource(videoSizeSource);
+		cptVideoSize.setSelectedKey(_ac.VideoSizeModel);
+
+		rbTCP.setChecked(!_ac.UDPMode);
+		rbUDP.setChecked(_ac.UDPMode);
+	}
+
+	public void btSave_Click(EventArg<View> arg) {
+		if (StringEx.equals(this.tbVideoCaptureRestartSpan.getText().toString(), "")) {
+			Alert("输入不正确");
+			return;
+		}
+		_ac.CameraSelected = rbFrontCamera.isChecked() ? CameraType.FrontCamera : CameraType.BackCamera;
+		_ac.VideoCaptrueStopMode = rbVideoCaptureStopMode1.isChecked() ? 0 : 1;
+		_ac.SpeakMode = this.cbSpeakMode.isChecked() ? 0 : 1;
+		_ac.LeaveExitApp = this.cbLeaveExitApp.isChecked();
+		_ac.TimeoutReconnect = this.cbTimeoutReconnect.isChecked();
+		_ac.VideoCaptrueRestartMinutes = Integer.parseInt(this.tbVideoCaptureRestartSpan.getText().toString());
+		_ac.VideoEncodeMode = this.cbVideoEncodeMode.isChecked() ? 1 : 0;
+		_ac.PicModeQuality = Integer.parseInt(this.tbPicModeQuality.getText().toString());
+		_ac.VideoSizeModel = cptVideoSize.getSelectedKey();
+		_ac.UDPMode = rbUDP.isChecked();
+		_ac.Save();
+		finish();
+
+	}
+}

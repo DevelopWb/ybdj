@@ -1,0 +1,52 @@
+package YangTalkback.Codec;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+
+import YangTalkback.Codec.FFCodec.AVCodecCfg;
+import YangTalkback.Codec.FFCodec.DFrame;
+import YangTalkback.Codec.FFCodec.FFCode;
+import YangTalkback.Codec.FFCodec.FFCodecType;
+import YangTalkback.Codec.FFCodec.FFObj;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.VideoDisplayFrame;
+import android.R.bool;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap.Config;
+
+import h264.com.VView;
+import AXLib.Utility.Console;
+import AXLib.Utility.Event;
+import AXLib.Utility.IDisposable;
+import AXLib.Utility.Queue;
+import AXLib.Utility.RuntimeExceptionEx;
+
+//图片解码器
+public class JPEGDecoder extends H264AndroidDecoder {
+	private void Init(MediaFrame mf) {
+		if (mf == null || mf.nIsKeyFrame == 0)
+			throw new RuntimeException("初始化解码器出错，非关键帧不能初始化解码器");
+		if (mf.nWidth <= 0 || mf.nHeight <= 0)
+			throw new RuntimeException("初始化解码器出错，长度或宽度错误");
+		int nWidth = mf.nWidth;
+		int nHeight = mf.nHeight;
+		inited = true;
+	}
+
+	public VideoDisplayFrame Deocde(MediaFrame mf) throws Exception {
+		VideoDisplayFrame result = null;
+		if (VideoBit != null)
+			VideoBit.recycle();
+		VideoBit = BitmapFactory.decodeByteArray(mf.Data, 0, mf.Data.length);
+		result = new VideoDisplayFrame(VideoBit, mf.nTimetick);
+		return result;
+	}
+
+	@Override
+	public void Dispose() {
+		if (VideoBit != null)
+			VideoBit.recycle();
+	}
+}

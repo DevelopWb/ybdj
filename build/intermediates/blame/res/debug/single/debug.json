@@ -1,0 +1,442 @@
+[
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_reg_dialog.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\reg_dialog.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_border2.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_border2.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_bottom_bg.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_bottom_bg.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_exiticon.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_exiticon.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_record.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_record.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_wave_4.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\wave_4.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_record_flag.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_record_flag.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_reg_shap.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\reg_shap.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_btn_bg.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\btn_bg.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_single_btn.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\single_btn.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_item_idinfo.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\item_idinfo.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_item_list_video_border.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\item_list_video_border.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_progressbar.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\progressbar.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_button_2.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_button_2.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_setting.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_setting.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_test.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\test.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\raw_test.ogg.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\raw\\test.ogg"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_main_id_sel.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_main_id_sel.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_backgroup1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_backgroup1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\raw_talk1.ogg.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\raw\\talk1.ogg"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_login.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_login.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_wave_5.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\wave_5.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_pswok.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_pswok.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_selectorpeople_bt.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\selectorpeople_bt.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_test.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_test.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_wave_2.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\wave_2.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_bottom_split.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_bottom_split.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_table_bottom.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_table_bottom.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_uc_buttonex_v.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\uc_buttonex_v.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_main.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_border4.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_border4.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_bottom_bg1.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_bottom_bg1.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_button_3.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_button_3.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_uc_buttonex_h.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\uc_buttonex_h.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_table_top.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_table_top.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_exitconfirmdlg.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_exitconfirmdlg.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_exit.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_exit.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_singlepos_exitconfirm.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\singlepos_exitconfirm.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_people_tk11.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\people_tk11.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_line_dash_1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_line_dash_1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_border10.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_border10.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_login_ren.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_login_ren.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_login_sel_active.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_login_sel_active.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_talk_1.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_talk_1.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_main_id_bg.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_main_id_bg.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\raw_duanxin.ogg.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\raw\\duanxin.ogg"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_exitok.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_exitok.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_exit.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_exit.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_warn_reg_layout.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\warn_reg_layout.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_wave_1.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\wave_1.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_button20_1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_button20_1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_item_record.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\item_record.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_top_bg.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_top_bg.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_record_search.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_record_search.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_button6.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_button6.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\raw_hyurpg.ogg.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\raw\\hyurpg.ogg"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border_left1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border_left1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_bottom_active.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_bottom_active.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border_crop.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border_crop.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_qqmusicicon.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\qqmusicicon.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_talkback_offline.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_talkback_offline.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_a_recording.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\a_recording.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_bg_bt111.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\bg_bt111.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_edit_shap.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\edit_shap.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_warn_layout.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\warn_layout.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_wave_0.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\wave_0.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_login_ban.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_login_ban.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_item_node_border.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\item_node_border.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_exitcancel.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_exitcancel.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_talkback_talking.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_talkback_talking.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_common_progress_dialog.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\common_progress_dialog.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_login_shuo.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_login_shuo.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_button20.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_button20.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_setting.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_setting.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_play_ico_preview.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\play_ico_preview.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_pswok_f.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_pswok_f.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border_bottom1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border_bottom1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border_top3.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border_top3.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_border5.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_border5.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_login_sel_bg.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_login_sel_bg.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_cpt_menu.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\cpt_menu.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_loading.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_loading.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_ic_action_search.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\ic_action_search.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_icon.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\icon.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_button20_2.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_button20_2.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_item_talkback_info.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\item_talkback_info.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_table_meddle.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_table_meddle.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_feature_layout.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\feature_layout.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border_bottom3.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border_bottom3.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_selector_bt.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\selector_bt.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_talking11.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\talking11.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border_1_bg.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border_1_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_warn_bg_shape.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\warn_bg_shape.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_m_talk_msg.jpg.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\m_talk_msg.jpg"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_dig_input.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\dig_input.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_button_image_1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_button_image_1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_talking1.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\talking1.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_singlepos_btnpswok.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\singlepos_btnpswok.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_talkback_leave.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_talkback_leave.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_wave_3.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\wave_3.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_radius_border20_1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_radius_border20_1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_people_tk1.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\people_tk1.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_button_4.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_button_4.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\layout_act_talkback.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\layout\\act_talkback.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_talkback_online.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_talkback_online.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_ico_fange.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\ico_fange.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable_ico_talk_2.png.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable\\ico_talk_2.png"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_button_1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_button_1.xml"
+    },
+    {
+        "merged": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi_c_border1.xml.flat",
+        "source": "C:\\Users\\JT2020\\Desktop\\YangTalkback_NR\\res\\drawable-hdpi\\c_border1.xml"
+    }
+]

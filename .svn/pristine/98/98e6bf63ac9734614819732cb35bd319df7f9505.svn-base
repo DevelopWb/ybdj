@@ -1,0 +1,118 @@
+package YangTalkback.Codec;
+//package AXVChat.Codec;
+//
+//import h264.com.VView;
+//
+//import java.io.ByteArrayInputStream;
+//import java.io.ByteArrayOutputStream;
+//import java.io.OutputStream;
+//import java.nio.ByteBuffer;
+//
+//import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.decoder.NativeH264Decoder;
+//
+//import AXLib.Utility.Event;
+//import AXLib.Utility.IDisposable;
+//import AXLib.Utility.LittleEndianDataInputStream;
+//import AXLib.Utility.Queue;
+//import AXVChat.Media.MediaFrame;
+//import android.graphics.Bitmap;
+//import android.graphics.Bitmap.Config;
+//
+//public class H264Decoder extends NativeH264Decoder implements IDisposable {
+//
+//	/**
+//	 * Video frame
+//	 */
+//	private int decodedFrame[];
+//	// 图片像素存放区域
+//	private byte[] mPixel = null;
+//	// 图片存放内存区间
+//	private ByteBuffer bmpBuffer = null;
+//	// 解码后的图片
+//	private Bitmap VideoBit = null;
+//
+//	// 视频数据接收缓冲区
+//	private Queue<MediaFrame> qFrame = null;
+//	// 标识解码线程是否正在工作中
+//	private boolean decodeThreadWorking = false;
+//	// 最大缓冲时间
+//	private final int MaxBufferTime = 1;
+//
+//	// 解码一桢图片的事件
+//	public final Event<Bitmap> Decoded = new Event<Bitmap>();
+//
+//	public final Event<Exception> Error = new Event<Exception>();
+//
+//	private boolean inited = false;
+//	private int _width = 0;
+//	private int _height = 0;
+//
+//	// 初始化
+//	private void Init(MediaFrame mf) {
+//		if (mf == null || mf.nIsKeyFrame == 0)
+//			throw new RuntimeException("初始化解码器出错，非关键帧不能初始化解码器");
+//		if (mf.nWidth <= 0 || mf.nHeight <= 0)
+//			throw new RuntimeException("初始化解码器出错，长度或宽度错误");
+//		_width = mf.nWidth;
+//		_height = mf.nHeight;
+//		decodedFrame = new int[_width * _height];
+//		mPixel = new byte[_width * _height * 3];
+//		bmpBuffer = ByteBuffer.wrap(mPixel);
+//		VideoBit = Bitmap.createBitmap(_width, _height, Config.ARGB_8888);
+//		int xa = InitDecoder();
+//		// InitDecoder(nWidth, nHeight);
+//		inited = true;
+//	}
+//
+//	public byte[] Deocde(MediaFrame mf) throws Exception {
+//
+//		if (!inited && mf.nIsKeyFrame == 1)
+//			Init(mf);
+//		if (inited) {
+//			int dsize = -1;
+//			synchronized (VideoBit) {
+//
+//				// 4-11
+//				// 16-20
+//				if (mf.nIsKeyFrame == 1) {
+//
+//					ByteArrayInputStream bis = new ByteArrayInputStream(mf.Data);
+//					LittleEndianDataInputStream is = new LittleEndianDataInputStream(bis);
+//					is.skip(4);
+//					byte[] sps = is.readFully(8);
+//					dsize = DecodeAndConvert(sps, decodedFrame);
+//					is.skip(4);
+//					byte[] pps = is.readFully(5);
+//					dsize = DecodeAndConvert(pps, decodedFrame);
+//					is.skip(4);
+//					byte[] data = is.readFully(mf.nSize - 25);
+//					dsize = DecodeAndConvert(data, decodedFrame);
+//				} else {
+//					mf.nOffset = 4;
+//					mf.nSize -= 4;
+//					dsize = DecodeAndConvert(mf.GetFrameData(), decodedFrame);
+//					mf.nOffset = 0;
+//				}
+//				// dsize = DecoderNal(mf.Data, mf.nSize, mPixel);
+//			}
+//			if (dsize == 1) {
+//				VideoBit.setPixels(decodedFrame, 0, _width, 0, 0, _width, _height);
+//				// VideoBit.copyPixelsFromBuffer(bmpBuffer);
+//				OnDecoded(VideoBit);
+//			}
+//		}
+//		return null;
+//	}
+//
+//	// 引发解码完成事件
+//	private void OnDecoded(Bitmap bitmap) {
+//		if (Decoded.getHandleCount() >= 0)
+//			Decoded.Trigger(this, bitmap);
+//	}
+//
+//	@Override
+//	public void Dispose() {
+//		if (inited)
+//			DeinitDecoder();
+//	}
+//}

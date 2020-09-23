@@ -1,0 +1,115 @@
+package YangTalkback.Cpt;
+
+import java.io.File;
+
+import YangTalkback.Act.R;
+import YangTalkback.Act.actMain;
+
+import YangTalkback.Base.ActCLBase;
+import YangTalkback.Base.AutoRefView;
+import YangTalkback.Comm.IDModel;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Comm.TalkbackStatus;
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.media.ThumbnailUtils;
+import android.net.Uri;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.AbsListView;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.RelativeLayout;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import AXLib.Utility.Console;
+import AXLib.Utility.Event;
+import AXLib.Utility.EventArg;
+
+public class cptIDItem extends cptBase implements IContainer, YangTalkback.Cpt.GenGridView.ActGenDataViewActivity1.IGridViewItemViewCPT<IDModel> {
+
+	private Activity _act = null;
+	private boolean _controlSeted = false;
+	protected IDModel _model = null;
+	@AutoRefView(id = R.item_idinfo.llLayout)
+	public LinearLayout llLayout;
+	@AutoRefView(id = R.item_idinfo.rlID, click = "OnClick")
+	public RelativeLayout rlID;
+	@AutoRefView(id = R.item_idinfo.cbID, click = "OnClick")
+	public CheckBox cbID;
+	@AutoRefView(id = R.item_idinfo.tvID, click = "OnClick")
+	public TextView tvID;
+
+	public cptIDItem(Activity act, IDModel model) {
+		super(act);
+		_act = act;
+		_model = model;
+
+	}
+
+	public void SetAct(ActCLBase act) {
+		_act = act;
+	}
+
+	@Override
+	public void SetView(View v) {
+		super.SetView(v);
+
+		cbID.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+				boolean changed = ((actMain) _act).OnIDSelectChanged(isChecked, _model.ID);
+				if (!changed)
+					cbID.setChecked(!isChecked);
+
+			}
+		});
+	}
+
+	public void setControl() {
+		tvID.setText(String.valueOf(_model.ID));
+		if (_model.IsOnLine) {
+			if (_model.TalkbackStatus == TalkbackStatus.Idle.getValue())
+				tvID.setTextColor(0xFF33CC00);
+			else
+				tvID.setTextColor(0xFF0000FF);
+		} else
+			tvID.setTextColor(0xFFFF0000);
+
+		cbID.setEnabled(_model.IsOnLine);
+
+		boolean sel = ((actMain) _act).SelIDList.contains((Object) _model.ID);
+		cbID.setChecked(sel);
+
+	}
+
+	public View getContainer() {
+		return llLayout;
+
+	}
+
+	public void OnClick(EventArg<View> arg) {
+		OnClick(arg.e);
+	}
+
+	public IDModel getModel() {
+		return _model;
+	}
+
+	public void setModel(IDModel model) {
+		if (!_controlSeted || _model != model) {
+			_model = model;
+			setControl();
+			_controlSeted = true;
+		}
+	}
+
+}

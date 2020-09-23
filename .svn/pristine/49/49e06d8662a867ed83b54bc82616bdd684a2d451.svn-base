@@ -1,0 +1,448 @@
+package YangTalkback.Act;
+
+import java.net.Socket;
+import java.util.Date;
+import java.util.Random;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.AlertDialogManage;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Comm.ClosureCase;
+import YangTalkback.Comm.IDModel;
+import YangTalkback.Comm.IDUseType;
+import YangTalkback.Comm.TalkStatus;
+import YangTalkback.Cpt.cptIDItem;
+import YangTalkback.Cpt.UIAdapter.GridAdapter;
+import YangTalkback.Cpt.UIAdapter.IDataSource;
+import YangTalkback.Cpt.UIAdapter.BaseAdapterEx.IItemViewCreater;
+import YangTalkback.Net.ClientConnection;
+import YangTalkback.Protocol.PBCallC;
+import YangTalkback.Protocol.PBCallR;
+import android.content.Intent;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_main, layout = 0x00)
+public class actMain extends actDBBase implements IItemViewCreater {
+
+	@AutoRefView(id = R.act_main.tbID)
+	public EditText tbID;// 号码输入框
+	@AutoRefView(id = R.act_main.btCall, click = "btCall_Click")
+	public Button btCall;// 呼叫按钮
+	@AutoRefView(id = R.act_main.btQuickCall, click = "btQuickCall_Click")
+	public Button btQuickCall;// 快速拔号按钮
+	@AutoRefView(id = R.act_main.btReflesh, click = "btReflesh_Click")
+	public Button btReflesh;// 刷新按钮
+	@AutoRefView(id = R.act_main.btExit, click = "btExit_Click")
+	public Button btExit;// 退出按钮
+	@AutoRefView(id = R.act_main.gvGrid)
+	public GridView gvGrid;// 显示号码列表
+
+	@AutoRefView(id = R.act_main.btSetting, click = "btSetting_Click")
+	public Button btSetting;// 设置按钮
+
+	private Thread _chackCallR = null;// 呼叫返回检测线程,如果超过一定时间没有接听则通过该线程进行处理
+	private static Random _rnd = new Random();// 随机数
+	protected GridAdapter<IDModel> gridAdp = null;// 号码列表数据源适配器
+	protected DataSource _dataSource = null;// 号码列表数据源
+	private ListEx<IDModel> _SysIDList = new ListEx<IDModel>();// 保存系统的号码列表
+
+	private short _waitCallR_ID = 0;// 呼叫时保存被呼叫号码的ID
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+	}
+
+	public void onScreenReady() {
+		if (_connection == null) {
+			AlertAndExit("网络连接异常！");
+		}
+		this.CallByNewThread("LoadAllID");// 启用新线程调用方法
+
+	}
+
+	// 加载所有号码
+	public void LoadAllID() {
+		if (_connection != null && _connection.getIsLogined()) {
+			_SysIDList = _connection.GetAllID();// 获取所有号码
+			if (_dataSource == null) {
+				this.CallByNewThread("CheckLayoutReady");// 启用新线程调用方法
+			} else {
+				post(new ICallback() {
+					@Override
+					public void invoke() {
+						Reflash();// 刷新主界面
+					}
+				});
+
+			}
+
+		}
+	}
+
+	// 呼入处理
+	@Override
+	public boolean CallC(final PBCallC pb, final RefObject<String> refObj) {
+		if (App.TalkStatus != TalkStatus.Idle) {
+			if (App.TalkStatus == TalkStatus.Closing)
+				refObj.Value = String.format("号码%d正忙", _connection.ID);
+			else
+				refObj.Value = String.format("号码%d正在通话", _connection.ID);
+			return false;
+		}
+		App.SetTalkStatus(TalkStatus.Repling);
+		final WaitResult<Boolean> wr = new WaitResult<Boolean>();
+		String msgString = String.format("号码:%d请求通话，是否接听？", pb.From);
+		AlertDialogManage dm = Prompt(msgString, PromptButton.NO, new IAction<Prompt.PromptButton>() {
+			@Override
+			public void invoke(PromptButton obj) {
+				AppStatusService.Instance.cancelNotification();
+				if (obj == PromptButton.YES) {
+					App.SetTalkStatus(TalkStatus.Talking);
+					refObj.Value = String.format("号码%d已接受请求", _connection.ID);
+					wr.Finish(true);
+					startActivity(actTalk.class, new actTalk.TalkPageParams(pb.From, false));
+				} else {
+					App.SetTalkStatus(TalkStatus.Closing);
+					refObj.Value = String.format("号码%d未接受请求", _connection.ID);
+					wr.Finish(false);
+				}
+			}
+		});
+
+		if (App.IsBack) {
+			AppStatusService.Instance.showNotification(msgString);
+		}
+		wr.Wait(30 * 1000);
+		AppStatusService.Instance.cancelNotification();
+		if (wr.GetIsFinish()) {// 是否超时
+			return wr.Result;
+		} else {
+
+			App.SetTalkStatus(TalkStatus.Closing);
+			Notice(String.format("号码%d接听超时", _connection.ID), 1000);
+			dm.Dialog.cancel();
+			refObj.Value = String.format("号码%d接听超时", _connection.ID);
+			return false;
+		}
+	}
+
+	// 呼叫返回
+	@Override
+	public void CallR(PBCallR pb) {
+		// 如果当前状态不是请求中心不处理
+		if (App.TalkStatus != TalkStatus.Requesting)
+			return;
+
+		// 如果响应非呼叫ID则不处理
+		if (_waitCallR_ID != 0 && pb.From != _waitCallR_ID && pb.From != 0)
+			return;
+
+		if (_chackCallR != null) {
+			ThreadEx.stop(_chackCallR);
+		}
+
+		if (pb.Result) {
+			// 请求被接听
+			CloseLoading();
+
+			App.SetTalkStatus(TalkStatus.Talking);
+			startActivity(actTalk.class, new actTalk.TalkPageParams(pb.From, true));
+		} else {
+			// 请求被断开
+			CloseLoading();
+			Alert(String.format("%s", pb.Message));
+			// 请求被拒绝
+			_waitCallR_ID = 0;
+			App.SetTalkStatus(TalkStatus.Idle);
+
+		}
+	}
+
+	// 点击呼叫按钮
+	public void btCall_Click(EventArg<View> arg) {
+		String toIdStr = this.tbID.getText().toString();
+		if (StringEx.isEmpty(toIdStr)) {
+			Alert("请号输入号码");
+			return;
+		}
+		final short toId = Short.parseShort(toIdStr);
+		// 判断是否已经连接
+		if (_connection != null && _connection.getIsConnected()) {
+			if (toId == _connection.ID) {
+				Alert("不能拔当前号码");
+				return;
+			}
+			_waitCallR_ID = toId;
+			App.SetTalkStatus(TalkStatus.Requesting);// 设置通话状态
+			_connection.Call(toId);
+
+			ICallback cancelCallback = new ICallback() {
+				public void invoke() {
+					if (_chackCallR != null) {
+						ThreadEx.stop(_chackCallR);
+					}
+					if (_connection != null && _connection.getIsConnected() && _waitCallR_ID != 0)
+						_connection.CallClosure(_waitCallR_ID, ClosureCase.OperCancel.getValue(), String.format("%d取消拔打号码", _connection.ID));
+					_waitCallR_ID = 0;
+					App.SetTalkStatus(TalkStatus.Closing);
+					CloseLoading();
+				}
+			};
+			OpenLoading(String.format("正在拔打号码：%d", toId), true, cancelCallback);
+			if (_chackCallR != null) {
+				ThreadEx.stop(_chackCallR);
+			}
+			final Date dt = TimeUtil.GetCurrentUtilDate();
+			_chackCallR = ThreadEx.GetThreadHandle(new ICallback() {
+				@Override
+				public void invoke() {
+					while (TimeUtil.DYNow(TimeUtil.AddSeconds(dt, 45))) {
+						ThreadEx.sleep(100);
+						if (_waitCallR_ID != toId || App.TalkStatus != TalkStatus.Requesting)
+							return;
+					}
+					if (_waitCallR_ID == toId && App.TalkStatus == TalkStatus.Requesting) {
+						CloseLoading();
+						Alert("对方无应答");
+					}
+				}
+			});
+			_chackCallR.start();
+		}
+	}
+
+	// 快速呼叫
+	public void btQuickCall_Click(EventArg<View> arg) {
+
+		if (_connection != null && _connection.getIsLogined()) {
+			final short curID = _connection.ID;
+			final RefObject<IDModel> refObj = new RefObject<IDModel>(null);
+
+			OpenLoading("正在快速拔号", true, new ICallback() {
+				@Override
+				public void invoke() {
+					if (_connection != null && _connection.getIsConnected() && refObj.Value != null)
+						_connection.CallClosure(refObj.Value.ID, ClosureCase.OperCancel.getValue(), String.format("%s取消拔打号码", _connection.ID));
+					_waitCallR_ID = 0;
+					App.SetTalkStatus(TalkStatus.Closing);
+
+					CloseLoading();
+				}
+			});
+
+			ListEx<IDModel> list = _connection.GetAllID();
+
+			if (list == null) {
+				Alert("快速拔号失败");
+				CloseLoading();
+				return;
+			}
+			ListEx<IDModel> idleList = list.Where(new Predicate<IDModel>() {
+				@Override
+				public boolean Test(IDModel p) {
+					return p.UseType == IDUseType.Center.getValue() && p.IsOnLine && p.TalkStatus == TalkStatus.Idle.getValue() && p.ID != curID;
+				}
+			});
+			if (idleList.size() == 0) {
+				Alert("当前忙碌，请稍后", true);
+				return;
+			} else {
+				refObj.Value = idleList.get(_rnd.nextInt() % idleList.size());
+				_waitCallR_ID = refObj.Value.ID;
+				App.SetTalkStatus(TalkStatus.Requesting);
+				_connection.Call(_waitCallR_ID);
+			}
+
+		}
+	}
+
+	// 设置
+	public void btSetting_Click(EventArg<View> arg) {
+		startActivity(actSetting.class);
+	}
+
+	// 刷新
+	public void btReflesh_Click(EventArg<View> arg) {
+
+		LoadAllID();
+	}
+
+	// 退出
+	public void btExit_Click(EventArg<View> arg) {
+		this.Prompt("是否退出", Prompt.PromptButton.NO, new IAction<Prompt.PromptButton>() {
+			@Override
+			public void invoke(PromptButton obj) {
+				if (obj == PromptButton.YES) {
+					App.exit();
+				}
+			}
+		});
+	}
+
+	public void CheckLayoutReady() {
+
+		if (_dataSource == null) {
+			_dataSource = new DataSource();
+		}
+		while (true) {
+
+			final int width = btQuickCall.getMeasuredWidth();
+
+			if (width != 0) {
+				post(new Runnable() {
+					@Override
+					public void run() {
+						InitGridView();
+					}
+				});
+				break;
+			}
+			ThreadEx.sleep(100);
+		}
+
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+		return false;
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+		if (resultCode == TimeoutReconnect) {
+			Intent intent1 = new Intent();
+			setResult(TimeoutReconnect, intent1);
+			finish(3000);
+		}
+		super.onActivityResult(requestCode, resultCode, intent);
+
+	}
+
+	// 刷新
+	public void Reflash() {
+		_dataSource.Reflash();
+		post(new Runnable() {
+			@Override
+			public void run() {
+				gridAdp.notifyDataSetChanged();
+			}
+		});
+
+	}
+
+	// 初始化列表
+	protected void InitGridView() {
+		gvGrid.setNumColumns(3);
+		try {
+			gridAdp = new IDGridAdapter(this, this, _dataSource, gvGrid);
+			gridAdp.ItemClickEvent.add(this, "ItemClickEvent");
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			throw RuntimeExceptionEx.Create(e);
+		}
+	}
+
+	// 列表中按钮点击事件
+	public void ItemClickEvent(EventArg<IDModel> arg) {
+		IDModel model = ((cptIDItem) arg.sender).getModel();
+		this.tbID.setText(String.valueOf(model.ID));
+	}
+
+	// 获取列表单元格中的视图
+	@Override
+	public View getItemView(int position, View convertView, ViewGroup parent) {
+		IDModel model = _dataSource.getItem(position);
+		if (model == null)
+			return null;
+		cptIDItem cpt = null;
+		if (convertView == null) {
+			convertView = _inflater.inflate(R.layout.item_idinfo, null);
+			cpt = new cptIDItem(_act, model);
+			cpt.SetView(convertView);
+			View view = cpt.getContainer();
+			cpt.ClickEvent.add(this, "ItemClickEvent");
+			if (this.itemWidth == -1 && this.itemHeight == -1)
+				view.setLayoutParams(new AbsListView.LayoutParams(AbsListView.LayoutParams.MATCH_PARENT, AbsListView.LayoutParams.MATCH_PARENT));
+			else if (this.itemWidth != -1 && this.itemHeight == -1)
+				view.setLayoutParams(new AbsListView.LayoutParams(this.itemWidth, AbsListView.LayoutParams.MATCH_PARENT));
+			else if (this.itemWidth == -1 && this.itemHeight != -1)
+				view.setLayoutParams(new AbsListView.LayoutParams(AbsListView.LayoutParams.MATCH_PARENT, this.itemHeight));
+			else
+				view.setLayoutParams(new AbsListView.LayoutParams(this.itemWidth, this.itemHeight));
+		} else {
+			cpt = (cptIDItem) convertView.getTag();
+		}
+		cpt.setModel(model);
+		convertView.setTag(cpt);
+		return convertView;
+	}
+
+	// 获取数据项
+	protected ListEx<IDModel> getData(int index) {
+		if (index == 1)
+			return _SysIDList;
+		else
+			return new ListEx<IDModel>();
+	}
+
+	// 绑定到列表的数据源
+	public class DataSource extends DataSourceBase<IDModel> implements YangTalkback.Cpt.UIAdapter.IDataSource<IDModel> {
+
+		public DataSource() {
+			LoadFirstPage();
+		}
+
+		public void Reflash() {
+			_isEnd = false;
+			_curPageIndex = 1;
+			_list.clear();
+			LoadFirstPage();
+		}
+
+		public void LoadFirstPage() {
+			ListEx<IDModel> list = nextPage();
+			if (list.size() == 0)
+				Notice("未找到相应的数据。");
+		}
+
+		@Override
+		public ListEx<IDModel> nextPage() {
+			ListEx<IDModel> list = getData(_curPageIndex++);
+
+			if (list != null) {
+				_list.addAll(list);
+
+				if (list.size() == 0)
+					_isEnd = true;
+			} else {
+				list = new ListEx<IDModel>();
+			}
+			return list;
+		}
+
+	}
+
+	// 绑定到列表的适配器
+	public class IDGridAdapter extends GridAdapter<IDModel> {
+		public IDGridAdapter(ActBase act, IItemViewCreater itemViewCreater, IDataSource<IDModel> dataSource, GridView gv) {
+			super(act, itemViewCreater, dataSource, gv);
+		}
+
+		public void onItemClick(EventArg<View> arg) {
+			IDModel model = ((cptIDItem) arg.sender).getModel();
+			ItemClickEvent.Trigger(this, model);
+		}
+
+	}
+}

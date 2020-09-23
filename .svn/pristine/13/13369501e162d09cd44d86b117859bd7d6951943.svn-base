@@ -1,0 +1,482 @@
+package YangTalkback.Codec;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.net.Inet4Address;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+import AXLib.Utility.CallBack;
+import AXLib.Utility.Console;
+import AXLib.Utility.Event;
+import AXLib.Utility.ICallback;
+import AXLib.Utility.IDisposable;
+import AXLib.Utility.ListEx;
+import AXLib.Utility.MemoryStream;
+import AXLib.Utility.Queue;
+import AXLib.Utility.RuntimeExceptionEx;
+import AXLib.Utility.Task;
+import AXLib.Utility.ThreadEx;
+import AXLib.Utility.TimeUtil;
+import AXLib.Utility.Ex.H16Str;
+import AXLib.Utility.Ex.StringEx;
+import Tools.*;
+import Tools.SliceHeader.SliceType;
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Codec.Cfg.VideoEncodeCfg;
+import YangTalkback.Comm.*;
+import YangTalkback.Media.MediaFrame;
+import YangTalkback.Media.MediaFrameFileWrite;
+import android.R.array;
+import android.R.integer;
+import android.R.string;
+import android.annotation.SuppressLint;
+import android.hardware.Camera;
+import android.media.MediaRecorder;
+import android.os.Build;
+import android.os.Environment;
+import android.os.MemoryFile;
+import android.view.Surface;
+
+//摄像头采集编码器
+@SuppressLint("NewApi")
+public class CameraEncoder extends CameraEncoderBase implements MediaRecorder.OnErrorListener, MediaRecorder.OnInfoListener, IDisposable {
+	// 保存的测试文件
+	private final String TESTFILE = Environment.getExternalStorageDirectory().getAbsolutePath() + "/axvchat_test.mp4";
+	private static int _openCount = 0;// 打开次数
+	private Date _lastStartTime;// 最后一次重置时间
+	private int _restartSpan = 10;// 重置间隔分钟
+	private boolean _needRestart = false;// 是否需要重置
+	private boolean _restarting = false;// 是否正在重置中
+	private boolean _isworking = false;// 当前是否在采集中
+	private MediaRecorder mediaRec = null;// 采集器
+	private InputStream fisVideoRead = null;// 采集数据读取流
+	private DataInputStream disVideoRead = null;// 采集数据读取流
+	private LSS lss = null;// 采集数据读取流
+	private Tools.MP4Config mp4Config;// 编码参数
+	private Semaphore lock = new Semaphore(0);// 同步信号量
+	private boolean mMediaRecRecording;// 当前是否正在录制中
+	private Thread receThread = null;// 采集数据接收线程
+	private Thread _pushThread = null;// 采集数据推送线程
+	private int _frameIndex = 0;// 帧序
+	private boolean _pushMode = false;// 推送模式
+	protected CameraEncoderDataReceiver receiver = null;// 采集数据接收器
+	private byte[] h264head = new byte[] { 0, 0, 0, 1 };// H264 帧分隔
+	private byte[] spspps = null;// H264 SPS PPS
+	private byte[] h263head = new byte[] { 0, 0, 80 };// H263帧头没有用到
+	private final static int h263FrameMaxSize = 1024 * 64;// H263帧大小,没有用到
+	private Queue<MediaFrame> _pushQueue = new Queue<MediaFrame>();// 帧推送队列
+	public boolean Stoped = false;// 是否已经停止
+
+	public CameraEncoder(VideoEncodeCfg cfg, int restartSpan, CameraEncoderDataReceiver receiver) {
+		encCfg = cfg;
+		this.receiver = receiver;
+		_restartSpan = restartSpan;
+		_needRestart = restartSpan > 0;
+
+		_pushMode = android.os.Build.VERSION.SDK_INT > 15;
+	}
+
+	public void start() {
+		if (encCfg.encodeName.equalsIgnoreCase("h264")) {
+			if (false || !encCfg.tryFillSPSPPS()) {
+				try {
+					boolean success = initMediaRec(true);
+					ThreadEx.sleep(1000);
+				} catch (Exception e) {
+					ThreadEx.sleep(1000);
+					CLLog.Error(e);
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					stop();
+					throw new RuntimeExceptionEx(e);
+				}
+			}
+		}
+		try {
+			_lastStartTime = TimeUtil.GetCurrentUtilDate();
+			initMediaRec(false);
+		} catch (Exception e) {
+			CLLog.Error(e);
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			stop();
+			throw new RuntimeExceptionEx(e);
+		}
+		_isworking = true;
+		receThread = ThreadEx.GetThreadHandle(new CallBack(this, "ReceiveThread"));
+		receThread.start();
+		_pushThread = ThreadEx.GetThreadHandle(new CallBack(this, "PushThread"));
+		_pushThread.start();
+
+	}
+
+	public void stop() {
+		if (!_isworking)
+			return;
+		_isworking = false;
+
+		try {
+			releaseMediaRecorder();
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			RuntimeExceptionEx.PrintException(e);
+		}
+		try {
+			mMediaRecRecording = false;
+			ThreadEx.stop(receThread);
+			ThreadEx.stop(_pushThread);
+			receThread = null;
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			RuntimeExceptionEx.PrintException(e);
+		}
+
+		if (lss != null)
+			lss.Dispose();
+		lss = null;
+		Stoped = true;
+	}
+
+	// 初始化,当ISTESE=TRUE时,要尝试性播放主要是为了获取SPS PPS
+	private boolean initMediaRec(boolean isTest) throws Exception {
+		if (lss == null)
+			lss = new LSS("CameraEncoder" + String.valueOf(_openCount++));
+		if (mediaRec == null)
+			mediaRec = new MediaRecorder();
+		else
+			mediaRec.reset();
+
+		try {
+			setCamera(mediaRec, encCfg);
+			mediaRec.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);// 输出格式
+			mediaRec.setVideoEncoder(VideoEncodeCfg.GetAndroidEncoder(encCfg.encodeName));// 编码方式
+
+			
+			mediaRec.setVideoSize(encCfg.width, encCfg.height);// 尺寸
+			mediaRec.setVideoFrameRate(encCfg.frameRate);// 帧率
+			mediaRec.setVideoEncodingBitRate(encCfg.videoBitRate);// 码率
+			// mediaRec.setMaxDuration(-1);
+			// mediaRec.setMaxFileSize(Integer.MAX_VALUE);
+			if (isTest)
+				mediaRec.setOutputFile(TESTFILE);
+			else
+				mediaRec.setOutputFile(lss.getFileDescriptor());
+			mediaRec.setMaxDuration(4 * 60 * 60 * 1000);// 最大输出时长
+			mediaRec.setPreviewDisplay(encCfg.surface);// 预览视图对象
+			mediaRec.setOnErrorListener(this);
+			mediaRec.setOnInfoListener(this);
+			mMediaRecRecording = true;
+			mediaRec.prepare();// 准备
+			mediaRec.start();// 开始
+		} catch (Exception e) {
+			String stack = RuntimeExceptionEx.GetStackTraceString(e);
+			releaseMediaRecorder();
+			return false;
+		}
+		if (isTest) {
+			if (lock.tryAcquire(1000, TimeUnit.MILLISECONDS))
+				Thread.sleep(3000);
+			else {
+				Thread.sleep(3000);
+				Console.d("ERROR", "MediaRecorder callback was not called after 6 seconds... :(");
+			}
+			releaseMediaRecorder();
+			encCfg.loadSPSPPS(TESTFILE);
+			File file = new File(TESTFILE);
+			if (!file.delete())
+				Console.d("DEBUG", "Temp file could not be erased");
+		}
+		return true;
+	}
+
+	private void releaseMediaRecorder() {
+		releaseMediaRecorder(0);
+	}
+
+	// 以下各个设备厂商实现的接口方式有很多不同，所以增加了很多错误处理
+	private void releaseMediaRecorder(int sleep) {
+		if (mediaRec != null) {
+
+			try {
+				try {
+					if (lss != null)
+						lss.lss.close();
+					if (mediaRec != null) {
+						try {
+							camera.lock();
+						} catch (Exception e) {
+						}
+						mediaRec.setPreviewDisplay(null);
+						mediaRec.setOnErrorListener(null);
+						mediaRec.setOnInfoListener(null);
+						// 如果非小米手机可以执下下面的代码，否则长时间运行会不能停止视频，如果是小米执行下面代码下次就开启不了摄像头
+						if (AppConfig.Instance.VideoCaptrueStopMode == 1) {
+							try {
+								if (fisVideoRead != null) {
+									ThreadEx.stop(receThread);
+									byte[] buf = new byte[fisVideoRead.available()];
+									disVideoRead.readFully(buf);
+									disVideoRead.close();
+									fisVideoRead.close();
+								}
+							} catch (Exception e1) {
+								String stack = RuntimeExceptionEx.GetStackTraceString(e1);
+								CLLog.Warn(e1);
+							}
+						}
+						mediaRec.stop();
+					}
+
+				} catch (Throwable e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					CLLog.Warn(e);
+				}
+				try {
+					camera.unlock();
+					if (camera != null) {
+						ThreadEx.sleep(sleep);
+						camera.reconnect();
+					}
+				} catch (Throwable e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					CLLog.Warn(e);
+				}
+				try {
+					if (camera != null) {
+						camera.stopPreview();
+					}
+				} catch (Throwable e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					CLLog.Warn(e);
+				}
+				try {
+					if (camera != null) {
+						ThreadEx.sleep(sleep);
+						camera.release();
+					}
+				} catch (Throwable e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					CLLog.Warn(e);
+				}
+				try {
+					if (mediaRec != null) {
+						ThreadEx.sleep(sleep);
+						mediaRec.release();
+					}
+				} catch (Throwable e) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(e);
+					CLLog.Warn(e);
+				}
+				mMediaRecRecording = false;
+				mediaRec = null;
+				camera = null;
+			} catch (Exception e) {
+				if (sleep < 500) {
+					releaseMediaRecorder(500);
+				} else if (sleep < 1000) {
+					releaseMediaRecorder(1000);
+				} else {
+					CLLog.Error(e);
+					throw new RuntimeExceptionEx("停止采集视频出错", e, true);
+				}
+			}
+			ThreadEx.sleep(sleep);
+		}
+	}
+
+	// 读取采集数据线程
+	public void ReceiveThread() throws Exception {
+		try {
+			_frameIndex = 0;
+			fisVideoRead = lss.getReceiverStream();
+
+			disVideoRead = new DataInputStream(fisVideoRead);
+			Skipmdat(disVideoRead);
+			int pts = 0;
+			// long ddt=dis.readLong();//小米需要读取8个字节
+
+			while (mMediaRecRecording && receThread != null) {
+				int len = disVideoRead.readInt();
+				// Console.d("CameraEncoder", String.valueOf(len));
+				if (len == 0x3f3f3f3f) {// 有些手机有8个字段的头
+					disVideoRead.readInt();
+					len = disVideoRead.readInt();
+				}
+
+				if (!_isworking)
+					break;
+				if (len > 1024 * 512)
+					throw RuntimeExceptionEx.Create("帧过大");
+				byte[] buff = new byte[len];
+				int p = 0;
+				while (p < buff.length && _isworking) {
+					p += disVideoRead.read(buff, p, buff.length - p);
+				}
+				if (!_isworking)
+					break;
+				MediaFrame mfFrame = null;
+				mfFrame = DecodeH264(buff);// 解析H264帧
+				pts += 60;
+				mfFrame.nTimetick = System.currentTimeMillis();
+
+				try {
+					if (mfFrame != null)
+						onEncoded(mfFrame);
+				} catch (Exception ex) {
+					String stack = RuntimeExceptionEx.GetStackTraceString(ex);
+					RuntimeExceptionEx.PrintException(ex);
+				}
+				if (mMediaRecRecording && receThread != null)
+					App.SleepOrWait(60);
+			}
+
+		} catch (Exception e) {
+			if (_isworking) {
+				CLLog.Error(e);
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				RuntimeExceptionEx.PrintException(e);
+				stop();
+				OnError(e);
+			}
+			// throw RuntimeExceptionEx.Create("采集视频流时出错", e);
+		}
+		mMediaRecRecording = false;
+		// receThread = null;
+	}
+
+	// 推送线程
+	public void PushThread() {
+
+		long bt = System.currentTimeMillis();
+		while (_isworking && _pushMode) {
+			int size = _pushQueue.size();
+			if (size > 0) {
+				MediaFrame mf = _pushQueue.poll();
+				if (receiver != null && mf != null) {
+					receiver.Received(mf);
+				}
+
+			}
+			long rate = 0;
+			if (size > 0) {
+				if (_frameIndex == 0)
+					_frameIndex++;
+				rate = (System.currentTimeMillis() - bt) / (long) _frameIndex;
+				if (_frameIndex > encCfg.frameRate * 10) {
+					ThreadEx.sleep((int) rate - size * (size / encCfg.frameRate) / encCfg.frameRate);
+				} else {
+					if (size >= encCfg.frameRate * 2)
+						ThreadEx.sleep(1000 / encCfg.frameRate);
+					else {
+						int sleep = (encCfg.frameRate - (encCfg.frameRate * 2 / size));
+						if (sleep != 0)
+							ThreadEx.sleep(1000 / sleep);
+						else
+							ThreadEx.sleep(1000 / 10);
+					}
+				}
+
+			} else {
+				ThreadEx.sleep(1000 / 10);
+			}
+			Console.d("PushThread", String.format("rate:%d  size:%d ", rate, size));
+		}
+	}
+
+	// 需要优化
+	private MediaFrame DecodeH264(byte[] data) throws Exception {
+		if (spspps == null)
+			spspps = encCfg.getSPSPPSBytes();
+		// Test_WriteFile(data);
+		byte[] buff = new byte[data.length + h264head.length + spspps.length];
+		System.arraycopy(data, 0, buff, h264head.length + spspps.length, data.length);
+		java.io.ByteArrayInputStream ais = new java.io.ByteArrayInputStream(buff);
+		ais.skip(h264head.length + spspps.length);
+		SliceHeader sh = new SliceHeader(ais, false);
+		MediaFrame mfFrame = null;
+		// Console.d("DEBUG", "index:%d   bt:%s  H264 %d   ",
+		// dis.available(), sh.slice_type.name(), len);
+		if (sh.slice_type == SliceType.I) {
+			System.arraycopy(spspps, 0, buff, 0, spspps.length);
+			System.arraycopy(h264head, 0, buff, spspps.length, h264head.length);
+			mfFrame = MediaFrame.createVideoKeyFrame(encCfg, getCurrentTimeMillis(), buff, 0, buff.length);
+		} else if (sh.slice_type == SliceType.P) {
+			System.arraycopy(h264head, 0, buff, spspps.length, h264head.length);
+			mfFrame = MediaFrame.CreateVideoFrame(encCfg, getCurrentTimeMillis(), buff, spspps.length, data.length + h264head.length);
+		}
+		ais.close();
+		return mfFrame;
+	}
+
+	private void Skipmdat(DataInputStream dis) throws IOException {
+		byte[] buffer = new byte[3];
+		while (true) {
+			while (dis.read() != 'm') {
+				buffer = buffer;
+			}
+
+			dis.read(buffer, 0, 3);
+			if (buffer[0] == 'd' && buffer[1] == 'a' && buffer[2] == 't')
+				break;
+		}
+	}
+
+	protected void onEncoded(MediaFrame mf) {
+		if (!_pushMode) {
+			if (receiver != null)
+				receiver.Received(mf);
+		} else {
+			_frameIndex++;
+			_pushQueue.offer(mf);
+		}
+		if (_needRestart && !_restarting && TimeUtil.XYNow(TimeUtil.AddMinutes(_lastStartTime, _restartSpan))) {
+			_restarting = true;
+			ThreadEx.ThreadCall(new CallBack(this, "Restart"));
+		}
+	}
+
+	// 重置采集器
+	public void Restart() {
+		if (_isworking) {
+			try {
+				Console.d("CameraEncoderRestart", "开始重启");
+				stop();
+				start();
+				Console.d("CameraEncoderRestart", "重启完成");
+			} catch (Throwable e) {
+				String stack = RuntimeExceptionEx.GetStackTraceString(e);
+				Console.d("CameraEncoderRestart", "重启错误：\r\n" + stack);
+			} finally {
+				_restarting = false;
+			}
+		}
+
+	}
+
+	// 定焦
+	public void AutoFocus() {
+		if (camera != null) {
+			camera.autoFocus(null);
+		}
+	}
+
+	@Override
+	public void Dispose() {
+		if (lss != null)
+			lss.Dispose();
+	}
+
+	// 采集数据接收器
+	public static interface CameraEncoderDataReceiver {
+		void Received(MediaFrame frame);
+	}
+
+}

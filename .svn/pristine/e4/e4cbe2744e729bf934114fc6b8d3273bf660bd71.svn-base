@@ -1,0 +1,8 @@
+﻿package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+
+public class PBAllIDC extends PBodyJSON
+{
+}

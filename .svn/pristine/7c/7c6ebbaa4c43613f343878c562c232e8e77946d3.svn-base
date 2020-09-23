@@ -1,0 +1,276 @@
+package YangTalkback.Act;
+
+import java.io.EOFException;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.HashMap;
+
+import AXLib.Model.RefObject;
+import AXLib.Utility.*;
+import AXLib.Utility.Event.EventReceiver;
+import AXLib.Utility.Ex.FunEx;
+import AXLib.Utility.Ex.StringEx;
+
+import YangTalkback.App.App;
+import YangTalkback.App.AppConfig;
+import YangTalkback.Base.*;
+import YangTalkback.Base.Prompt.PromptButton;
+import YangTalkback.Codec.CamVideoCoderProfile.CameraType;
+import YangTalkback.Comm.CLLog;
+import YangTalkback.Cpt.ucButtonEx;
+import YangTalkback.Cpt.Dialog.dlgInput;
+import YangTalkback.Media.CameraHelper;
+import YangTalkback.Net.ClientConnection;
+import android.R.integer;
+import android.R.string;
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.*;
+import android.telephony.TelephonyManager;
+import android.view.*;
+import android.widget.*;
+
+@AutoRefView(id = R.layout.act_menu, layout = 0x01)
+public class actMenu extends ActMonitorPage {
+	private static boolean _D = AppConfig._D;
+	private static boolean _D1 = _D && true;// 本地测试
+	private dlgInput _dlgCDKey = null;
+	private dlgInput _dlgRemoteIP = null;
+	@AutoRefView(id = R.act_menu.ucMonitor, click = "ucbMonitor_click")
+	public ucButtonEx ucbMonitor = new ucButtonEx(R.drawable.menu_monitor, "实时视频");
+	@AutoRefView(id = R.act_menu.ucPublish, click = "ucPublish_click")
+	public ucButtonEx ucbPublish = new ucButtonEx(R.drawable.menu_publish, "视频云");
+	@AutoRefView(id = R.act_menu.ucSetting, click = "ucSetting_click")
+	public ucButtonEx ucbSetting = new ucButtonEx(R.drawable.menu_setting, "系统设置");
+	@AutoRefView(id = R.act_menu.ucHelp, click = "ucHelp_click")
+	public ucButtonEx ucbHelp = new ucButtonEx(R.drawable.menu_help, "系统帮助");
+
+	private ucButtonEx.ucButtonExStyle _style = null;// ucButtonEx.ucButtonExStyle.getDefault();
+	private ListEx<ucButtonEx> _ucList = new ListEx<ucButtonEx>();
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+	}
+
+	public void onScreenReady() {
+		if (!android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
+			AlertAndExit("SD卡无效");
+			return;
+		}
+		InitControl();
+		CheckCDKey();
+		CheckSystemConfig();
+	}
+
+	private void InitControl() {
+
+		_dlgCDKey = new dlgInput(this, "请输入您的注册码:");
+		_dlgCDKey.SubmitEvent.add(this, "dlgCDKey_Submit");
+		_dlgCDKey.CancelEvent.add(this, "dlgCDKey_Cancel");
+		_dlgCDKey.setContentView(R.layout.dig_input);
+		_dlgCDKey.setCancelable(true);
+		_dlgCDKey.setCanceledOnTouchOutside(false);
+
+		_dlgRemoteIP = new dlgInput(this, "云视频服务器IP设置:");
+		_dlgRemoteIP.SubmitEvent.add(this, "dlgRemoteIP_Submit");
+		_dlgRemoteIP.setContentView(R.layout.dig_input);
+		_dlgRemoteIP.SetValue(_ac.RemoteServerIP);
+
+		_style = ucButtonEx.ucButtonExStyle.getDefault();
+		_style.fontSize = 24;
+		_style.fontColor = 0xEEffffff;
+
+		_ucList.add(ucbMonitor);
+		_ucList.add(ucbPublish);
+		_ucList.add(ucbSetting);
+		_ucList.add(ucbHelp);
+		for (ucButtonEx item : _ucList)
+			item.SetStyle(_style);
+
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+
+		menu.add(Menu.NONE, Menu.FIRST + 1, 1, "云视频设置").setIcon(R.drawable.option_setting);
+
+		menu.add(Menu.NONE, Menu.FIRST + 2, 2, "系统帮助").setIcon(R.drawable.option_help);
+
+		menu.add(Menu.NONE, Menu.FIRST + 3, 3, "系统退出").setIcon(R.drawable.option_exit);
+
+		return true;
+
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case Menu.FIRST + 1:
+			_dlgRemoteIP.show();
+			break;
+		case Menu.FIRST + 2:
+			startActivity(actHelp.class);
+			break;
+		case Menu.FIRST + 3:
+			App.exit();
+			break;
+		default:
+			break;
+		}
+		return true;
+	}
+
+	private void CheckCDKey() {
+
+		String cdkey = getResources().getString(R.string.cd_key);
+		if (!StringEx.equalsIgnoreCase(_ac.CDKey, cdkey)) {
+			if (!hasInternet(this, this.getApplicationContext())) {
+				AlertAndExit("您的设备当前无可用网络连接，请设置网络连接后重试！");
+				return;
+			} else {
+				_dlgCDKey.show();
+			}
+		}
+	}
+
+	public static boolean hasInternet(Activity activity, Context c) {
+		ConnectivityManager manager = (ConnectivityManager) activity.getSystemService(c.CONNECTIVITY_SERVICE);
+		NetworkInfo info = manager.getActiveNetworkInfo();
+		if (info == null || !info.isConnected()) {
+			return false;
+		}
+		if (info.isRoaming()) {
+			return true;
+		}
+		return true;
+
+	}
+
+	public static String getIMEI(Context context) {
+		String IMEI;
+		TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+		IMEI = telephonyManager.getDeviceId();
+
+		return IMEI;
+	}
+
+	private void CheckSystemConfig() {
+		if (StringEx.isEmpty(_ac.CDKey))
+			return;
+		if (StringEx.isEmpty(_ac.WifiSSID) || StringEx.isEmpty(_ac.WifiPWD) || StringEx.isEmpty(_ac.LoginIDStr) || StringEx.isEmpty(_ac.ServerIP)) {
+			Prompt("您未设置系统参数，是否马上设置？", PromptButton.NO, new IAction<Prompt.PromptButton>() {
+				@Override
+				public void invoke(PromptButton obj) {
+					if (obj == PromptButton.YES) {
+						ucSetting_click(null);
+					}
+				}
+			});
+		} else {
+
+		}
+	}
+
+	@SuppressLint({ "NewApi", "UseSparseArrays" })
+	public boolean CheckCDKey(String input, RefObject<String> refMsg) {
+
+		try {
+			StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().detectNetwork().penaltyLog().build());
+			StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().detectLeakedSqlLiteObjects().detectLeakedClosableObjects().penaltyLog().penaltyDeath().build());
+
+			String iemi = getIMEI(this);
+			String url = String.format("http://218.246.35.74:5050/PC/Default.aspx?Number=%s&Onlycode=%s", input, iemi);
+			HttpClient hc = new HttpClient();
+
+			String htmlString = hc.getMethod(url, false);
+			HashMap<Integer, String> dic = new HashMap<Integer, String>();
+			dic.put(0, "参数错误");
+			dic.put(1, "成功");
+			dic.put(10, "注册码状态正常");
+			dic.put(11, "注册码超过有效使用次数");
+			dic.put(12, "注册码已过期");
+			dic.put(13, "注册码超过有效使用次数并已过期");
+			dic.put(14, "此注册码未授权在此机器使用");
+			dic.put(15, "注册码已被禁用");
+			dic.put(16, "注册码不存在");
+			dic.put(17, "注册中发生未知异常,注册失败");
+			int key = Integer.parseInt(htmlString);
+			if (dic.containsKey(key))
+				refMsg.Value = dic.get(key);
+			else
+				refMsg.Value = "注册码验证失败";
+			return key == 1;
+		} catch (Exception e) {
+			refMsg.Value = "注册码验证失败";
+			return false;
+		}
+
+	}
+
+	public void dlgCDKey_Cancel(EventArg<Object> arg) {
+		App.exit();
+	}
+
+	public void dlgCDKey_Submit(EventArg<Object> arg) {
+		RefObject<String> refMsg = new RefObject<String>("");
+		String input = String.valueOf(arg.e);
+		if (CheckCDKey(input, refMsg))
+			input = "123456";
+		else
+			input = "";
+		String cdkey = getResources().getString(R.string.cd_key);
+
+		if (!StringEx.equalsIgnoreCase(cdkey, input)) {
+			Prompt(refMsg.Value, new IAction<Prompt.PromptButton>() {
+				@Override
+				public void invoke(PromptButton obj) {
+					if (obj == PromptButton.YES) {
+						CheckCDKey();
+						CheckSystemConfig();
+					} else {
+						App.exit();
+					}
+				}
+			});
+		} else {
+			_ac.CDKey = input;
+			_ac.Save();
+		}
+	}
+
+	public void dlgRemoteIP_Submit(EventArg<Object> arg) {
+
+		_ac.RemoteServerIP = String.valueOf(arg.e);
+		_ac.Save();
+	}
+
+	public void ucbMonitor_click(EventArg<View> arg) {
+
+		startActivity(actMonitor.class, 0);
+	}
+
+	public void ucPublish_click(EventArg<View> arg) {
+		startActivity(actMonitor.class, 1);
+	}
+
+	public void ucSetting_click(EventArg<View> arg) {
+		startActivity(actLink.class);
+	}
+
+	public void ucHelp_click(EventArg<View> arg) {
+		// startActivity(actSetting.class);
+		startActivity(actHelp.class);
+	}
+
+	@Override
+	public boolean OnKeyDown_Back() {
+		App.exit();
+		return true;
+	}
+}

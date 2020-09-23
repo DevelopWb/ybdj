@@ -1,0 +1,17 @@
+package YangTalkback.Net.Model;
+
+import java.util.Date;
+
+import YangTalkback.Comm.IDModel;
+import AXLib.Utility.ListEx;
+
+public class AudioFileModel {
+	public String File;
+	public String Name;
+	public String Time;
+	public String MainID;
+	public String MainIDName;
+	public ListEx<Short> IDList;
+	public long Size;
+
+}

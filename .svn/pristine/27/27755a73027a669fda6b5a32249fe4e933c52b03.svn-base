@@ -1,0 +1,10 @@
+﻿package YangTalkback.Protocol;
+
+import java.io.*;
+import AXLib.Utility.*;
+
+public class PBCallC extends PBodyJSON
+{
+	public String FromName;
+ 
+}

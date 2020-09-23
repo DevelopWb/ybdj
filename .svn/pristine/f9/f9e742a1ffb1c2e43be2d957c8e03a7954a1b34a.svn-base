@@ -1,0 +1,114 @@
+package YangTalkback.Codec;
+
+import java.io.DataInputStream;
+import java.io.InputStream;
+import java.util.Arrays;
+
+import YangTalkback.App.App;
+import YangTalkback.Media.MediaFrame;
+
+import AXLib.Utility.RuntimeExceptionEx;
+
+public class CameraEncoderH263 {
+//
+//	public void ReceiveThreadH263() throws Exception {
+//
+//		InputStream fis = lss.getReceiverStream();
+//		DataInputStream dis = new DataInputStream(fis);
+//		Skipmdat(dis);
+//		byte[] buf = new byte[h263FrameMaxSize];
+//		byte flag = 0;
+//		int pos = 0;
+//		int index = 0;
+//		byte[] data = null;
+//		int count = 0;
+//		int pts = 0;
+//		dis.readByte();
+//		dis.readByte();
+//		flag = dis.readByte();
+//
+//		while (mMediaRecRecording && receThread != null) {
+//			try {
+//				if (dis.available() > h263FrameMaxSize) {
+//					// Console.d("H263Test", "pos_0:" + pos);
+//					int tpos = pos;
+//					dis.readFully(buf, pos, h263FrameMaxSize - pos);
+//					pos = 0;
+//					while (true) {
+//						// Console.d("H263Test", "pos_1:" + pos);
+//						if (pos == 0 && tpos > 2) {
+//							index = FindH263Flag(buf, tpos - 2, h263FrameMaxSize);
+//						} else
+//							index = FindH263Flag(buf, pos, h263FrameMaxSize);
+//
+//						if (pos == 0 && index == -1)
+//							throw new RuntimeExceptionEx("缓冲区大小错误");
+//						// Console.d("H263Test", "index_1:" + index);
+//						if (index > -1) {
+//							if (index - pos < 0) {
+//								throw new RuntimeExceptionEx("采集视频流时出错");
+//							}
+//							data = new byte[index - pos + 3];
+//							if (pos != 0)
+//								flag = buf[pos - 1];
+//							data[2] = flag;
+//							System.arraycopy(buf, pos, data, 3, index - pos);
+//							// Console.d("H263Test", data.length + "");
+//							pos = index + h263head.length;
+//							// Console.d("H263Test", "pos_2:" + pos);
+//							// Console.d("H263Data",
+//							// "count:%d  flag:%s   size:%d", count++,
+//							// H16Str.To16Str(flag), data.length);
+//							MediaFrame mfFrame = DecodeH263(data);
+//
+//							onEncoded(mfFrame);
+//							if (pos == h263FrameMaxSize) {
+//								flag = buf[pos - 1];
+//								pos = 0;
+//								break;
+//							}
+//						} else {
+//							// Console.d("H263Test", "pos_3:" + pos);
+//							System.arraycopy(buf, pos, buf, 0, h263FrameMaxSize - pos);
+//							pos = h263FrameMaxSize - pos;
+//							Arrays.fill(buf, pos, h263FrameMaxSize, (byte) 0);
+//							// Console.d("H263Test", "pos_4:" + pos);
+//							break;
+//						}
+//					}
+//				}
+//
+//				// if(frame.nIsAudio==0)
+//				// Console.d("Received", "1type:%d key:%d  size:%d",
+//				// frame.nIsAudio, frame.nIsKeyFrame, frame.nSize);
+//				//
+//				App.SleepOrWait(null);
+//			} catch (Exception e) {
+//				throw RuntimeExceptionEx.Create("采集视频流时出错", e);
+//			}
+//		}
+//		mMediaRecRecording = false;
+//		receThread = null;
+//	}
+//
+//	private MediaFrame DecodeH263(byte[] data) throws Exception {
+//		if (data != null && data.length >= 5) {
+//			if ((data[4] & 0x02) == 0x00)
+//				return MediaFrame.createVideoKeyFrame(encCfg, getCurrentTimeMillis(), data, 0, data.length);
+//			else {
+//				return MediaFrame.CreateVideoFrame(encCfg, getCurrentTimeMillis(), data, 0, data.length);
+//			}
+//		}
+//		return null;
+//
+//	}
+//
+//	private int FindH263Flag(byte[] bs, int start, int end) {
+//		for (int i = start; i <= end - h263head.length; i++) {
+//			if (bs[i] == 0 && bs[i + 1] == 0 && (bs[i + 2] & (byte) 0xFC) == (byte) 0x80)
+//				return i;
+//		}
+//		return -1;
+//	}
+
+}
